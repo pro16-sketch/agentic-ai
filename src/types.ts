@@ -13,6 +13,25 @@ export interface ProductMetric {
   has_anomaly: boolean;
 }
 
+export interface InitialVsFinalComparison {
+  initial: {
+    return_rate_pct: number;
+    monthly_loss: number;
+    net_profit: number;
+    gross_margin_pct: number;
+    inventory_risk: string;
+    affected_skus: number;
+  };
+  final: {
+    return_rate_pct: number;
+    net_recovered: number;
+    net_profit: number;
+    gross_margin_pct: number;
+    inventory_risk: string;
+    affected_skus: number;
+  };
+}
+
 export interface BusinessMetrics {
   total_revenue: number;
   total_profit: number;
@@ -22,8 +41,10 @@ export interface BusinessMetrics {
   low_stock_skus: number;
   active_anomalies: number;
   products: ProductMetric[];
-  monthly_revenue_trend: Array<{ date: string; revenue: number; profit: number }>;
+  monthly_revenue_trend: Array<{ date: string; revenue: number; profit: number; returnRate?: number }>;
   return_reasons_breakdown: Array<{ reason: string; count: number }>;
+  is_resolved?: boolean;
+  initial_vs_final?: InitialVsFinalComparison;
 }
 
 export interface BusinessStateResponse {

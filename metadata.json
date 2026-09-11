@@ -1,0 +1,6 @@
+{
+  "name": "ARGUS — Enterprise Business Operations Platform",
+  "description": "Autonomous AI Business Intelligence & Operations Agent Platform with financial metrics, investigation console, and decision center.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
-import { BusinessOverview } from './components/BusinessOverview';
-import { InvestigationConsole } from './components/InvestigationConsole';
-import { DecisionCenter } from './components/DecisionCenter';
-import { ApprovalOutcome } from './components/ApprovalOutcome';
+import { Navbar, AppViewMode } from './components/Navbar';
+import { GuidedIncidentFlow } from './components/GuidedIncidentFlow';
+import { OperationsCenter } from './components/OperationsCenter';
+import { AgentActivityLog } from './components/AgentActivityLog';
+import { ExplainModal } from './components/ExplainModal';
 import { 
   fetchBusinessState, 
   fetchInvestigationDetails, 
@@ -16,13 +16,14 @@ import {
 import { 
   BusinessMetrics, 
   InvestigationDetails, 
-  AgentEvent,
-  Decision
+  AgentEvent 
 } from './types';
+import { Sparkles, HelpCircle, AlertOctagon } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'investigation' | 'decision' | 'approval'>('overview');
-  
+  const [viewMode, setViewMode] = useState<AppViewMode>('guided');
+  const [isExplainOpen, setIsExplainOpen] = useState<boolean>(false);
+
   const [metrics, setMetrics] = useState<BusinessMetrics | null>(null);
   const [activeInvestigationId, setActiveInvestigationId] = useState<number | null>(1);
   const [investigation, setInvestigation] = useState<InvestigationDetails | null>(null);
@@ -30,9 +31,10 @@ export function App() {
   
   const [loading, setLoading] = useState<boolean>(true);
   const [isInvestigating, setIsInvestigating] = useState<boolean>(false);
+  const [isResetting, setIsResetting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. Initial & Periodic Data Refresh
+  // Load business state
   const loadBusinessState = async () => {
     try {
       const data = await fetchBusinessState();
@@ -42,7 +44,7 @@ export function App() {
       }
     } catch (err: any) {
       console.error("Failed to load business state:", err);
-      setError("Unable to connect to ARGUS Backend. Make sure FastAPI server is running on port 8000.");
+      setError("Unable to connect to ARGUS Backend API.");
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,7 @@ export function App() {
     const interval = setInterval(() => {
       loadBusinessState();
       loadAgentEvents();
-    }, 8000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
@@ -93,16 +95,12 @@ export function App() {
       await loadInvestigation(res.investigation_id);
       await loadBusinessState();
       await loadAgentEvents();
-      setActiveTab('investigation');
+      setViewMode('guided');
     } catch (err) {
       console.error("Error triggering investigation:", err);
     } finally {
       setIsInvestigating(false);
     }
-  };
-
-  const handleSelectStrategy = (decision: Decision) => {
-    setActiveTab('approval');
   };
 
   const handleApproveAction = async (decisionId: number) => {
@@ -132,16 +130,18 @@ export function App() {
   };
 
   const handleResetData = async () => {
+    setIsResetting(true);
     try {
       await resetDemoData();
       await loadBusinessState();
-      if (activeInvestigationId) {
-        await loadInvestigation(1);
-      }
+      await loadInvestigation(1);
+      setActiveInvestigationId(1);
       await loadAgentEvents();
-      setActiveTab('overview');
+      setViewMode('guided');
     } catch (err) {
       console.error("Reset data error:", err);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -157,69 +157,89 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
       
       {/* Top Navigation */}
       <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
         activeAnomaliesCount={metrics?.active_anomalies || 0}
-        onTriggerInvestigation={handleTriggerInvestigation}
+        onOpenExplain={() => setIsExplainOpen(true)}
         onResetData={handleResetData}
-        isInvestigating={isInvestigating}
+        isResetting={isResetting}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
+        {/* Error Alert */}
         {error && (
-          <div className="mb-6 bg-rose-950/80 border border-rose-800 text-rose-200 p-4 rounded-xl text-sm flex items-center justify-between">
+          <div className="bg-rose-950/80 border border-rose-800 text-rose-200 p-4 rounded-2xl text-sm flex items-center justify-between">
             <span>{error}</span>
             <button onClick={loadBusinessState} className="underline text-xs font-mono ml-4">Retry Connection</button>
           </div>
         )}
 
-        {/* Section 1: Business Overview */}
-        {activeTab === 'overview' && metrics && (
-          <BusinessOverview
+        {/* Friendly Guided Incident Intro Banner (Only in guided mode) */}
+        {viewMode === 'guided' && (
+          <div className="bg-slate-900 border border-slate-800/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-400 shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                <strong className="text-white">Interactive Walkthrough:</strong> Follow this 4-step pipeline to see how ARGUS detects an e-commerce crisis, runs autonomous diagnostics, and proposes a 1-click executive fix.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsExplainOpen(true)}
+              className="shrink-0 text-xs text-blue-400 hover:text-blue-300 flex items-center space-x-1 font-medium underline"
+            >
+              <span>Explain in plain English →</span>
+            </button>
+          </div>
+        )}
+
+        {/* View 1: Guided Incident Flow (Default) */}
+        {viewMode === 'guided' && metrics && (
+          <GuidedIncidentFlow
             metrics={metrics}
-            onInvestigateAnomaly={handleTriggerInvestigation}
-          />
-        )}
-
-        {/* Section 2: Investigation Console */}
-        {activeTab === 'investigation' && (
-          <InvestigationConsole
             investigation={investigation}
-            events={events}
-            onTriggerInvestigation={handleTriggerInvestigation}
             isInvestigating={isInvestigating}
-          />
-        )}
-
-        {/* Section 3: Decision Center */}
-        {activeTab === 'decision' && (
-          <DecisionCenter
-            investigation={investigation}
-            onSelectStrategy={handleSelectStrategy}
-          />
-        )}
-
-        {/* Section 4: Approval / Outcome */}
-        {activeTab === 'approval' && (
-          <ApprovalOutcome
-            investigation={investigation}
+            onTriggerInvestigation={handleTriggerInvestigation}
             onApprove={handleApproveAction}
             onReject={handleRejectAction}
+            onResetData={handleResetData}
+            onNavigateToOperations={() => setViewMode('operations')}
           />
+        )}
+
+        {/* View 2: Operations Center Dashboard */}
+        {viewMode === 'operations' && metrics && (
+          <OperationsCenter
+            metrics={metrics}
+            onGoToIncident={() => setViewMode('guided')}
+          />
+        )}
+
+        {/* View 3: Agent Live Telemetry Log */}
+        {viewMode === 'logs' && (
+          <AgentActivityLog events={events} />
         )}
 
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 py-6 text-center text-xs text-slate-500 font-mono">
-        ARGUS Enterprise Business Intelligence Platform &copy; 2026. Connected to FastAPI Engine on Port 8000.
+      <footer className="border-t border-slate-800 bg-slate-950 py-5 text-center text-xs text-slate-500 font-mono">
+        ARGUS Autonomous Operations Engine &copy; 2026. Real-time Incident Detection & Decision Resolution.
       </footer>
+
+      {/* Plain-English Explanation Modal */}
+      <ExplainModal
+        isOpen={isExplainOpen}
+        onClose={() => setIsExplainOpen(false)}
+        onStartWalkthrough={() => setViewMode('guided')}
+      />
 
     </div>
   );
