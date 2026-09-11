@@ -129,3 +129,22 @@ export interface ScenarioSimulationResult {
   simulated_roi: number;
   stockout_risk_reduction_pct: number;
 }
+
+export interface AskArgusResult {
+  answer: string;
+  key_metrics: Array<{ label: string; value: string; trend?: 'up' | 'down' | 'neutral' }>;
+  recommended_action: string;
+  confidence: number;
+  model_used: string;
+}
+
+export interface ScenarioDefinition {
+  id: string;
+  name: string;
+  subtitle: string;
+  badge: string;
+  badgeColor: string;
+  affectedProduct: string;
+  severity: string;
+  description: string;
+}

@@ -3,7 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { getStore, resetStore } from './server/store.js';
 import { getBusinessMetrics, runScenarioSimulation } from './server/analytics.js';
-import { runInvestigation } from './server/agent.js';
+import { runInvestigation, askArgus, generateExecutiveSitrep } from './server/agent.js';
 import { Outcome, AuditLog } from './server/types.js';
 
 async function startServer() {
@@ -285,6 +285,40 @@ async function startServer() {
   };
   app.post('/reset-demo-data', handleResetData);
   app.post('/api/reset-demo-data', handleResetData);
+
+  // 9. Ask ARGUS AI Executive Copilot (Gemini powered)
+  const handleAgentAsk = async (req: express.Request, res: express.Response) => {
+    try {
+      const question = req.body?.question || "Provide a summary of the active anomaly";
+      const result = await askArgus(question);
+      res.json(result);
+    } catch (err: any) {
+      console.error("Agent ask error:", err);
+      res.status(500).json({ error: "Failed to process agent query" });
+    }
+  };
+  app.post('/api/agent-ask', handleAgentAsk);
+
+  // 10. Inject Scenario / Custom Incident Trigger
+  const handleInjectScenario = (req: express.Request, res: express.Response) => {
+    const scenario = req.body?.scenario || "firmware_leak";
+    const customPrompt = req.body?.custom_prompt;
+    const inv = runInvestigation(customPrompt, scenario);
+    res.json({
+      message: `Scenario '${scenario}' injected successfully.`,
+      investigation_id: inv.id,
+      investigation: inv
+    });
+  };
+  app.post('/api/inject-scenario', handleInjectScenario);
+
+  // 11. Agent Voice SITREP Briefing
+  const handleAgentSitrep = (req: express.Request, res: express.Response) => {
+    const id = parseInt(req.params.id || '1', 10);
+    const sitrep = generateExecutiveSitrep(id);
+    res.json(sitrep);
+  };
+  app.get('/api/agent-sitrep/:id?', handleAgentSitrep);
 
   // Vite middleware for development vs static build for production
   if (process.env.NODE_ENV !== "production") {

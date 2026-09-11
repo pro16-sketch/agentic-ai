@@ -3,7 +3,8 @@ import {
   BusinessStateResponse, 
   InvestigationDetails, 
   AgentEvent,
-  ScenarioSimulationResult 
+  ScenarioSimulationResult,
+  AskArgusResult
 } from './types';
 
 const api = axios.create({
@@ -63,5 +64,25 @@ export const runSimulation = async (params: {
   reorder_qty: number;
 }): Promise<ScenarioSimulationResult> => {
   const res = await api.post<ScenarioSimulationResult>('/api/simulate', params);
+  return res.data;
+};
+
+export const askArgusApi = async (question: string): Promise<AskArgusResult> => {
+  const res = await api.post<AskArgusResult>('/api/agent-ask', { question });
+  return res.data;
+};
+
+export const injectScenarioApi = async (scenario: string, customPrompt?: string): Promise<{
+  message: string;
+  investigation_id: number;
+  investigation: InvestigationDetails;
+}> => {
+  const res = await api.post('/api/inject-scenario', { scenario, custom_prompt: customPrompt });
+  return res.data;
+};
+
+export const fetchAgentSitrep = async (id?: number): Promise<{ text: string; audioScript: string }> => {
+  const url = id ? `/api/agent-sitrep/${id}` : '/api/agent-sitrep';
+  const res = await api.get<{ text: string; audioScript: string }>(url);
   return res.data;
 };

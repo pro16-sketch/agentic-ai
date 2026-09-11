@@ -4,6 +4,9 @@ import { GuidedIncidentFlow } from './components/GuidedIncidentFlow';
 import { OperationsCenter } from './components/OperationsCenter';
 import { AgentActivityLog } from './components/AgentActivityLog';
 import { ExplainModal } from './components/ExplainModal';
+import { HackathonPitchModal } from './components/HackathonPitchModal';
+import { AskArgusCopilot } from './components/AskArgusCopilot';
+import { ScenarioSelectorBar } from './components/ScenarioSelectorBar';
 import { 
   fetchBusinessState, 
   fetchInvestigationDetails, 
@@ -11,23 +14,27 @@ import {
   fetchAgentEvents,
   approveAction,
   rejectAction,
-  resetDemoData
+  resetDemoData,
+  injectScenarioApi
 } from './api';
 import { 
   BusinessMetrics, 
   InvestigationDetails, 
   AgentEvent 
 } from './types';
-import { Sparkles, HelpCircle, AlertOctagon } from 'lucide-react';
+import { Sparkles, HelpCircle, AlertOctagon, Trophy, BrainCircuit } from 'lucide-react';
 
 export function App() {
   const [viewMode, setViewMode] = useState<AppViewMode>('guided');
   const [isExplainOpen, setIsExplainOpen] = useState<boolean>(false);
+  const [isPitchOpen, setIsPitchOpen] = useState<boolean>(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
 
   const [metrics, setMetrics] = useState<BusinessMetrics | null>(null);
   const [activeInvestigationId, setActiveInvestigationId] = useState<number | null>(1);
   const [investigation, setInvestigation] = useState<InvestigationDetails | null>(null);
   const [events, setEvents] = useState<AgentEvent[]>([]);
+  const [currentScenarioName, setCurrentScenarioName] = useState<string>("Firmware BLE Memory Leak");
   
   const [loading, setLoading] = useState<boolean>(true);
   const [isInvestigating, setIsInvestigating] = useState<boolean>(false);
@@ -103,6 +110,30 @@ export function App() {
     }
   };
 
+  const handleSelectScenario = async (scenarioKey: string, customPrompt?: string) => {
+    setIsInvestigating(true);
+    try {
+      const res = await injectScenarioApi(scenarioKey, customPrompt);
+      setActiveInvestigationId(res.investigation_id);
+      await loadInvestigation(res.investigation_id);
+      await loadBusinessState();
+      await loadAgentEvents();
+      
+      const scenarioMap: Record<string, string> = {
+        'firmware_leak': 'Firmware BLE Memory Leak',
+        'supplier_bottleneck': 'Global Microelectronics Port Bottleneck',
+        'viral_defect': 'Vortex Keyboard Viral Switch Chatter',
+        'custom': customPrompt ? `Custom: ${customPrompt.slice(0, 30)}...` : 'Custom Operational Incident'
+      };
+      setCurrentScenarioName(scenarioMap[scenarioKey] || 'Active Operational Incident');
+      setViewMode('guided');
+    } catch (err) {
+      console.error("Scenario injection error:", err);
+    } finally {
+      setIsInvestigating(false);
+    }
+  };
+
   const handleApproveAction = async (decisionId: number) => {
     try {
       await approveAction(decisionId);
@@ -136,6 +167,7 @@ export function App() {
       await loadBusinessState();
       await loadInvestigation(1);
       setActiveInvestigationId(1);
+      setCurrentScenarioName("Firmware BLE Memory Leak");
       await loadAgentEvents();
       setViewMode('guided');
     } catch (err) {
@@ -165,6 +197,8 @@ export function App() {
         setViewMode={setViewMode}
         activeAnomaliesCount={metrics?.active_anomalies || 0}
         onOpenExplain={() => setIsExplainOpen(true)}
+        onOpenPitchModal={() => setIsPitchOpen(true)}
+        onOpenCopilot={() => setIsCopilotOpen(true)}
         onResetData={handleResetData}
         isResetting={isResetting}
       />
@@ -180,25 +214,12 @@ export function App() {
           </div>
         )}
 
-        {/* Friendly Guided Incident Intro Banner (Only in guided mode) */}
-        {viewMode === 'guided' && (
-          <div className="bg-slate-900 border border-slate-800/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-400 shrink-0">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                <strong className="text-white">Interactive Walkthrough:</strong> Follow this 4-step pipeline to see how ARGUS detects an e-commerce crisis, runs autonomous diagnostics, and proposes a 1-click executive fix.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsExplainOpen(true)}
-              className="shrink-0 text-xs text-blue-400 hover:text-blue-300 flex items-center space-x-1 font-medium underline"
-            >
-              <span>Explain in plain English →</span>
-            </button>
-          </div>
-        )}
+        {/* Live Scenario Selector / Disaster Injector (Available across views) */}
+        <ScenarioSelectorBar
+          onSelectScenario={handleSelectScenario}
+          isLoading={isInvestigating}
+          activeScenarioName={currentScenarioName}
+        />
 
         {/* View 1: Guided Incident Flow (Default) */}
         {viewMode === 'guided' && metrics && (
@@ -231,7 +252,26 @@ export function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800 bg-slate-950 py-5 text-center text-xs text-slate-500 font-mono">
-        ARGUS Autonomous Operations Engine &copy; 2026. Real-time Incident Detection & Decision Resolution.
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>ARGUS Autonomous Operations Engine &copy; 2026. Real-time Incident Detection & Decision Resolution.</span>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setIsPitchOpen(true)}
+              className="text-amber-400 hover:text-amber-300 transition-colors flex items-center space-x-1"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>Judge Pitch Mode</span>
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => setIsCopilotOpen(true)}
+              className="text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1"
+            >
+              <BrainCircuit className="w-3.5 h-3.5" />
+              <span>Ask Copilot</span>
+            </button>
+          </div>
+        </div>
       </footer>
 
       {/* Plain-English Explanation Modal */}
@@ -239,6 +279,21 @@ export function App() {
         isOpen={isExplainOpen}
         onClose={() => setIsExplainOpen(false)}
         onStartWalkthrough={() => setViewMode('guided')}
+      />
+
+      {/* 🏆 Hackathon Pitch Modal */}
+      <HackathonPitchModal
+        isOpen={isPitchOpen}
+        onClose={() => setIsPitchOpen(false)}
+        onSelectScenario={handleSelectScenario}
+        onOpenCopilot={() => setIsCopilotOpen(true)}
+      />
+
+      {/* 🤖 Gemini 3.8 Flash AI Copilot Drawer */}
+      <AskArgusCopilot
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        activeAnomalyTitle={investigation?.metric_name}
       />
 
     </div>

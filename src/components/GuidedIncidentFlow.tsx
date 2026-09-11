@@ -24,7 +24,13 @@ import {
   BarChart2,
   FileText,
   Eye,
-  Check
+  Check,
+  Layers,
+  SlidersHorizontal,
+  Info,
+  Target,
+  Calendar,
+  TrendingDown
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -36,9 +42,14 @@ import {
   CartesianGrid, 
   BarChart, 
   Bar,
-  Cell
+  Cell,
+  ReferenceLine,
+  ReferenceArea,
+  Legend
 } from 'recharts';
 import { InvestigationDetails, BusinessMetrics } from '../types';
+import { AudioSitrepPlayer } from './AudioSitrepPlayer';
+import { AgentWorkflowDAG } from './AgentWorkflowDAG';
 
 interface GuidedIncidentFlowProps {
   metrics: BusinessMetrics;
@@ -90,6 +101,11 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
   const [isRejecting, setIsRejecting] = useState<boolean>(false);
   const [rejectReason, setRejectReason] = useState<string>('');
   const [lockNotice, setLockNotice] = useState<string | null>(null);
+  const [showWorkflowDAG, setShowWorkflowDAG] = useState<boolean>(false);
+
+  // Streamlined visualization state
+  const [selectedSpikeDayIndex, setSelectedSpikeDayIndex] = useState<number>(6);
+
 
   const decisions = investigation?.decisions || [];
   const selectedDecision = decisions.find(d => d.id === selectedDecisionId) || (isResolved ? decisions[0] : null);
@@ -195,22 +211,50 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
     }
   };
 
-  // Sample mini chart for Step 1: return rate spike timeline
-  const returnRateSpikeData = [
-    { day: "D-6", rate: 2.1, normal: 2.1 },
-    { day: "D-5", rate: 2.0, normal: 2.1 },
-    { day: "D-4", rate: 2.2, normal: 2.1 },
-    { day: "D-3 (v2.4 OTA)", rate: 5.4, normal: 2.1 },
-    { day: "D-2", rate: 10.9, normal: 2.1 },
-    { day: "D-1", rate: 13.6, normal: 2.1 },
-    { day: "Today (Spike)", rate: 14.8, normal: 2.1 },
+  // --- INTERACTIVE MULTI-HORIZON DATASETS (Step 1) ---
+  interface SpikeTelemetryPoint {
+    day: string;
+    rate: number;
+    baseline: number;
+    orders: number;
+    returns: number;
+    event: string;
+    zScore: string;
+    isRollout?: boolean;
+    rmaType?: string;
+  }
+
+  const spikeTelemetryData = [
+    { day: "Sep 05", rate: 2.1, baseline: 2.1, event: "Nominal operations", zScore: "+0.1σ" },
+    { day: "Sep 06", rate: 2.0, baseline: 2.1, event: "Normal baseline audio testing", zScore: "-0.1σ" },
+    { day: "Sep 07", rate: 2.2, baseline: 2.1, event: "Pre-deployment staging", zScore: "+0.2σ" },
+    { day: "Sep 08", rate: 5.4, baseline: 2.1, event: "Firmware v2.4 pushed OTA to 1,240 active units", isRollout: true, zScore: "+1.8σ" },
+    { day: "Sep 09", rate: 10.9, baseline: 2.1, event: "First Bluetooth disconnects reported", zScore: "+3.4σ" },
+    { day: "Sep 10", rate: 13.6, baseline: 2.1, event: "RMA requests surged +320%", zScore: "+4.2σ" },
+    { day: "Sep 11 (Today)", rate: 14.8, baseline: 2.1, event: "Critical crisis peak: Autonomous alert triggered", zScore: "+4.8σ" },
   ];
 
-  // Strategy Comparison Data for Step 3 (Aligned with Option A, B, and C)
+  const currentSpikePoint = spikeTelemetryData[selectedSpikeDayIndex] || spikeTelemetryData[spikeTelemetryData.length - 1];
+
+  // Strategy comparison dataset
   const strategyComparisonData = [
-    { name: "Option A (BEST)", cost: 8400, recovered: 46200, net: 37800, roi: 5.5, verdict: "BEST" },
-    { name: "Option C (Sub-optimal)", cost: 15200, recovered: 54000, net: 38800, roi: 3.55, verdict: "SUB-OPTIMAL" },
-    { name: "Option B (WORST)", cost: 24500, recovered: 18000, net: -6500, roi: 0.73, verdict: "WORST" },
+    { id: 1, name: "Option A (BEST)", label: "Hotfix + Air Freight", cost: 8400, recovered: 46200, net: 37800, roi: 5.5 },
+    { id: 3, name: "Option C (Discount)", label: "Clearance Discount", cost: 15200, recovered: 54000, net: 38800, roi: 3.5 },
+    { id: 2, name: "Option B (Recall)", label: "Physical Hardware Recall", cost: 24500, recovered: 18000, net: -6500, roi: 0.73 },
+  ];
+
+  // Trajectory rebound dataset
+  const trajectoryComparisonData = [
+    { date: "Day 01", withArgus: 1755, withoutArgus: 1755 },
+    { date: "Day 04", withArgus: 1825, withoutArgus: 1825 },
+    { date: "Day 07", withArgus: 1736, withoutArgus: 1736 },
+    { date: "Day 09 (Crisis)", withArgus: 1423, withoutArgus: 1423 },
+    { date: "Day 10 (Crisis)", withArgus: 1353, withoutArgus: 1100 },
+    { date: "Day 11 (Audit)", withArgus: 770, withoutArgus: 820 },
+    { date: "Day 12 (Fix v2.4.1)", withArgus: 1650, withoutArgus: 590 },
+    { date: "Day 14 (Air Freight)", withArgus: 1980, withoutArgus: 480 },
+    { date: "Day 16 (Stabilized)", withArgus: 2150, withoutArgus: 420 },
+    { date: "Day 18 (Restored)", withArgus: 2240, withoutArgus: 380 },
   ];
 
   // AI Strategic Assessment Matrix: Evaluates BEST, WORST, and SUB-OPTIMAL
@@ -272,9 +316,19 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
     };
   };
 
+  const sitrepScript = investigation 
+    ? `Attention Executive. ARGUS operational telemetry has flagged an active operational incident: ${investigation.metric_name}. Anomaly score is ${investigation.anomaly_score} out of 10. Root cause confirmed: ${investigation.root_cause}. Three strategic options have been synthesized. Strategy Option A recovers $46,200 in gross margin with a 5.5x capital ROI. Awaiting your executive authorization command.`
+    : "Attention Executive. ARGUS operational telemetry is actively monitoring return rates, sales volume, and supply chain lead times across all product lines.";
+
   return (
     <div className="space-y-6">
       
+      {/* Executive Audio SITREP Briefing Player */}
+      <AudioSitrepPlayer 
+        script={sitrepScript} 
+        title={investigation ? `Operational SITREP: ${investigation.metric_name.replace('ARGUS Audit: ', '')}` : "Operational SITREP Briefing"}
+      />
+
       {/* Visual Pipeline Header / Consecutive Stepper */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800/80 text-xs">
@@ -285,17 +339,29 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
             <span className="text-slate-500">•</span>
             <span className="text-slate-400">Step {currentStep} of 4</span>
           </div>
-          {isResolved ? (
-            <span className="text-emerald-400 font-mono text-[11px] font-semibold flex items-center space-x-1 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/80">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Resolved • Saved $46,200</span>
-            </span>
-          ) : (
-            <span className="text-amber-400 font-mono text-[11px] font-semibold flex items-center space-x-1 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/80">
-              <AlertOctagon className="w-3.5 h-3.5" />
-              <span>Active Crisis</span>
-            </span>
-          )}
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowWorkflowDAG(!showWorkflowDAG)}
+              className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-blue-400 border border-blue-900/50 text-[11px] font-mono transition-colors flex items-center space-x-1"
+              title="Inspect the Agent's Cognitive Reasoning DAG"
+            >
+              <Sparkles className="w-3 h-3 text-blue-400" />
+              <span>{showWorkflowDAG ? 'Hide Reasoning DAG' : 'Inspect Reasoning DAG'}</span>
+            </button>
+
+            {isResolved ? (
+              <span className="text-emerald-400 font-mono text-[11px] font-semibold flex items-center space-x-1 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/80">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Resolved • Saved $46,200</span>
+              </span>
+            ) : (
+              <span className="text-amber-400 font-mono text-[11px] font-semibold flex items-center space-x-1 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/80">
+                <AlertOctagon className="w-3.5 h-3.5" />
+                <span>Active Crisis</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -363,6 +429,14 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
           </div>
         )}
       </div>
+
+      {/* Expandable Cognitive Reasoning Graph DAG */}
+      {showWorkflowDAG && (
+        <AgentWorkflowDAG 
+          investigation={investigation} 
+          activeStep={currentStep} 
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* STEP 1: PROBLEM DETECTED (Consecutive Step 1)                             */}
@@ -441,40 +515,84 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
               </div>
             </div>
 
-            {/* Interactive Return Rate Spike Visualizer */}
+            {/* Clean Telemetry Surge Chart */}
             <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-                    <BarChart2 className="w-4 h-4 text-rose-400" />
-                    <span>Telemetry Visualizer: 7-Day Return Spike</span>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                    Return Rate Anomaly Timeline
                   </h3>
-                  <p className="text-[11px] text-slate-400">Notice the sharp hockey-stick jump right after Firmware v2.4 rolled out</p>
+                  <p className="text-[11px] text-slate-400">
+                    Continuous monitoring over the 7-day outbreak period
+                  </p>
                 </div>
-                <span className="text-[11px] font-mono text-rose-400 font-semibold bg-rose-950/60 border border-rose-800 px-2 py-0.5 rounded">
-                  Spike Severity: +605%
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2 py-0.5 rounded">
+                    Baseline: 2.1%
+                  </span>
+                  <span className="text-xs font-mono text-rose-400 font-bold bg-rose-950/60 border border-rose-800 px-2 py-0.5 rounded">
+                    Peak: 14.8% (+605%)
+                  </span>
+                </div>
               </div>
 
-              <div className="h-44 w-full">
+              <div className="h-52 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={returnRateSpikeData}>
+                  <AreaChart data={spikeTelemetryData}>
                     <defs>
-                      <linearGradient id="spikeRate" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="spikeRateClean" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
+                        <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.02}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
                     <XAxis dataKey="day" stroke="#64748B" tick={{ fontSize: 11 }} />
-                    <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                    <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} domain={[0, 18]} />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
                       formatter={(val: any) => [`${val}%`, 'Return Rate']}
+                      labelFormatter={(label) => `Date: ${label}`}
                     />
-                    <Area type="monotone" dataKey="rate" stroke="#F43F5E" strokeWidth={2.5} fillOpacity={1} fill="url(#spikeRate)" name="Actual Rate" />
+                    
+                    <ReferenceLine 
+                      y={2.1} 
+                      stroke="#10B981" 
+                      strokeDasharray="3 3" 
+                      strokeWidth={1.5}
+                      label={{ value: 'Normal Baseline (2.1%)', fill: '#10B981', fontSize: 10, position: 'insideTopLeft' }} 
+                    />
+
+                    <ReferenceLine 
+                      x="Sep 08" 
+                      stroke="#3B82F6" 
+                      strokeWidth={1.5}
+                      strokeDasharray="2 2"
+                      label={{ value: 'v2.4 Rollout', fill: '#60A5FA', fontSize: 10, position: 'top' }} 
+                    />
+
+                    <Area 
+                      type="monotone" 
+                      dataKey="rate" 
+                      stroke="#F43F5E" 
+                      strokeWidth={2.5} 
+                      fillOpacity={1} 
+                      fill="url(#spikeRateClean)" 
+                      name="Actual Return Rate" 
+                      activeDot={{ r: 6, stroke: '#FFFFFF', strokeWidth: 2, fill: '#F43F5E' }}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
+              </div>
+
+              {/* Clean Telemetry Callout */}
+              <div className="p-3 bg-slate-900/60 border border-slate-800/80 rounded-xl flex items-center justify-between text-xs text-slate-300">
+                <span className="flex items-center space-x-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                  <span><strong>Root Trigger:</strong> Spike accelerated from 2.1% to 14.8% within 72 hours of Firmware v2.4 rollout.</span>
+                </span>
+                <span className="font-mono text-rose-400 font-bold text-[11px] shrink-0">
+                  Statistical Anomaly: +4.8σ
+                </span>
               </div>
             </div>
 
@@ -984,25 +1102,35 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
               })}
             </div>
 
-            {/* Interactive Strategy Visual Comparison Bar Chart */}
+            {/* Clean Strategy Financial ROI Comparison */}
             <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Side-by-Side Financial ROI Comparison
+                    Financial Trade-off Comparison
                   </h3>
-                  <p className="text-[11px] text-slate-400">Comparing Net Financial Gain (Revenue Recovered minus Cost) across options</p>
+                  <p className="text-[11px] text-slate-400">
+                    Net financial outcome across options (Click any bar to select strategy)
+                  </p>
                 </div>
                 <div className="flex items-center space-x-3 text-xs font-mono">
-                  <span className="text-emerald-400 font-bold">Option A (BEST): +$37,800</span>
+                  <span className="text-emerald-400 font-bold">Option A: +$37,800 Net (5.5x ROI)</span>
                   <span className="text-slate-600">•</span>
-                  <span className="text-rose-400 font-bold">Option B (WORST): -$6,500</span>
+                  <span className="text-rose-400 font-bold">Option B: -$6,500 Net</span>
                 </div>
               </div>
 
-              <div className="h-44 w-full">
+              <div className="h-48 w-full cursor-pointer">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={strategyComparisonData}>
+                  <BarChart 
+                    data={strategyComparisonData}
+                    onClick={(e) => {
+                      if (e && e.activePayload && e.activePayload.length > 0) {
+                        const clickedId = e.activePayload[0].payload.id;
+                        handleSelectDecision(clickedId);
+                      }
+                    }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
                     <XAxis dataKey="name" stroke="#64748B" tick={{ fontSize: 11 }} />
                     <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={(val) => `$${val/1000}k`} />
@@ -1010,11 +1138,29 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                       contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
                       formatter={(val: any) => [`$${Number(val).toLocaleString()}`, '']}
                     />
-                    <Bar dataKey="recovered" name="Projected Revenue" fill="#10B981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="recovered" name="Revenue Recovered" fill="#10B981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="cost" name="Implementation Cost" fill="#F43F5E" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="net" name="Net Gain / (Loss)" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="net" name="Net Gain / (Loss)" radius={[4, 4, 0, 0]}>
+                      {strategyComparisonData.map((entry) => (
+                        <Cell 
+                          key={entry.id} 
+                          fill={entry.id === selectedDecisionId ? '#3B82F6' : entry.net > 0 ? '#1D4ED8' : '#BE123C'} 
+                          stroke={entry.id === selectedDecisionId ? '#93C5FD' : 'none'}
+                          strokeWidth={entry.id === selectedDecisionId ? 2 : 0}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+
+              <div className="flex items-center justify-between text-xs font-mono pt-1 text-slate-400">
+                <span>Selected: <strong className="text-white font-bold">
+                  {strategyComparisonData.find(d => d.id === selectedDecisionId)?.name || 'Option A (BEST)'}
+                </strong></span>
+                <span className="text-blue-400">
+                  {selectedDecisionId === 1 ? 'Optimal Balance of Speed, Cost & Margin' : selectedDecisionId === 2 ? 'Excessive Cost & Long Downtime' : 'Discount Clearance Erodes Brand Value'}
+                </span>
               </div>
             </div>
 
@@ -1224,38 +1370,76 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
 
                 </div>
               ) : (
-                /* Rebound Curve Chart */
+                /* Clean Rebound Trajectory Chart */
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <h4 className="text-xs font-bold text-white uppercase">Revenue Rebound Trajectory</h4>
-                      <p className="text-[11px] text-slate-400">Showing the post-resolution recovery trajectory</p>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                        Revenue Trajectory: Recovery vs. Unmitigated Crisis
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Post-hotfix recovery curve restoring nominal $2,240/day baseline
+                      </p>
                     </div>
-                    <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
-                      Restored Margin: {metrics.gross_margin_pct}%
-                    </span>
+                    <div className="flex items-center space-x-2 text-xs font-mono">
+                      <span className="text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800/80 px-2 py-0.5 rounded">
+                        Restored: $2,240/day
+                      </span>
+                      <span className="text-rose-400 font-bold bg-rose-950/60 border border-rose-800/80 px-2 py-0.5 rounded">
+                        Avoided Bleed: -$38.4k
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="h-48 w-full">
+                  <div className="h-52 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={metrics.monthly_revenue_trend}>
+                      <AreaChart data={trajectoryComparisonData}>
                         <defs>
-                          <linearGradient id="reboundRev" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                          <linearGradient id="reboundWithArgusClean" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.35}/>
+                            <stop offset="95%" stopColor="#10B981" stopOpacity={0.02}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
                         <XAxis dataKey="date" stroke="#64748B" tick={{ fontSize: 11 }} />
-                        <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={(val) => `$${val}`} />
+                        <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={(val) => `$${val}`} domain={[0, 2600]} />
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                          formatter={(value: any) => [`$${Number(value).toLocaleString()}`, '']}
+                          formatter={(value: any, name: string) => [
+                            `$${Number(value).toLocaleString()}`, 
+                            name === 'withArgus' ? 'With Hotfix' : 'Without Intervention'
+                          ]}
                         />
-                        <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#reboundRev)" name="Rebound Revenue" />
-                        <Area type="monotone" dataKey="profit" stroke="#3B82F6" strokeWidth={2} fillOpacity={0} name="Net Profit" />
+                        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
+                        
+                        <ReferenceLine x="Day 09 (Crisis)" stroke="#F59E0B" strokeDasharray="3 3" label={{ value: 'Crisis Outbreak', fill: '#F59E0B', fontSize: 10, position: 'top' }} />
+                        <ReferenceLine x="Day 12 (Fix v2.4.1)" stroke="#10B981" strokeDasharray="3 3" label={{ value: 'Hotfix Deployed', fill: '#10B981', fontSize: 10, position: 'top' }} />
+
+                        <Area 
+                          type="monotone" 
+                          dataKey="withArgus" 
+                          stroke="#10B981" 
+                          strokeWidth={2.5} 
+                          fillOpacity={1} 
+                          fill="url(#reboundWithArgusClean)" 
+                          name="With Hotfix ($/day)" 
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="withoutArgus" 
+                          stroke="#F43F5E" 
+                          strokeWidth={2} 
+                          strokeDasharray="4 4" 
+                          fillOpacity={0} 
+                          name="Without Intervention (Bleed)" 
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs font-mono flex items-center justify-between text-slate-300">
+                    <span><strong>Intervention Result:</strong> Normal operations fully restored by Day 18 at <strong>$2,240/day</strong> run rate.</span>
+                    <span className="text-emerald-400 font-bold text-[11px]">Net Preserved: +$46,200</span>
                   </div>
                 </div>
               )}
