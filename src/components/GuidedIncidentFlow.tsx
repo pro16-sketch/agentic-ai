@@ -108,22 +108,30 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
 
 
   const decisions = investigation?.decisions || [];
-  const selectedDecision = decisions.find(d => d.id === selectedDecisionId) || (isResolved ? decisions[0] : null);
+  const approvedDecision = decisions.find(d => d.status === 'approved');
+  const selectedDecision = decisions.find(d => d.id === selectedDecisionId) || approvedDecision || decisions[0] || null;
+  const resolvedDecision = approvedDecision || selectedDecision || decisions[0] || null;
 
   useEffect(() => {
     if (isResolved) {
       setMaxUnlockedStep(4);
-      if (selectedDecisionId === null) {
-        setSelectedDecisionId(1);
+      if (approvedDecision && selectedDecisionId !== approvedDecision.id) {
+        setSelectedDecisionId(approvedDecision.id);
+      } else if (selectedDecisionId === null && decisions.length > 0) {
+        setSelectedDecisionId(decisions[0].id);
       }
     }
-  }, [isResolved]);
+  }, [isResolved, approvedDecision, decisions]);
+
+  const activeImpact = resolvedDecision ? resolvedDecision.projected_revenue_impact : 46200;
+  const activeCost = resolvedDecision ? resolvedDecision.estimated_cost : 8400;
+  const activeNet = activeImpact - activeCost;
 
   const steps = [
     { id: 1, label: "1. Crisis Detection", desc: "Acknowledge 14.8% spike" },
     { id: 2, label: "2. Autonomous Diagnosis", desc: "Audit hypotheses & logs" },
     { id: 3, label: "3. Strategy Modeling", desc: "Select best ROI plan" },
-    { id: 4, label: "4. Authorize & Execute", desc: isResolved ? "Resolved & Saved $46,200" : "1-Click Executive Fix" }
+    { id: 4, label: "4. Authorize & Execute", desc: isResolved ? `Resolved • Net ${activeNet >= 0 ? '+' : ''}$${activeNet.toLocaleString()}` : "1-Click Executive Fix" }
   ];
 
   const handleStepClick = (stepId: number) => {
@@ -236,26 +244,89 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
 
   const currentSpikePoint = spikeTelemetryData[selectedSpikeDayIndex] || spikeTelemetryData[spikeTelemetryData.length - 1];
 
-  // Strategy comparison dataset
-  const strategyComparisonData = [
-    { id: 1, name: "Option A (BEST)", label: "Hotfix + Air Freight", cost: 8400, recovered: 46200, net: 37800, roi: 5.5 },
-    { id: 3, name: "Option C (Discount)", label: "Clearance Discount", cost: 15200, recovered: 54000, net: 38800, roi: 3.5 },
-    { id: 2, name: "Option B (Recall)", label: "Physical Hardware Recall", cost: 24500, recovered: 18000, net: -6500, roi: 0.73 },
-  ];
+  // Dynamic strategy comparison dataset built from active investigation decisions
+  const strategyComparisonData = decisions.length > 0
+    ? decisions.map((d, index) => {
+        const assessment = getStrategyAssessment(d.id, d.strategy_type);
+        const letter = String.fromCharCode(65 + index);
+        const net = d.projected_revenue_impact - d.estimated_cost;
+        return {
+          id: d.id,
+          name: `Option ${letter} (${assessment.ratingLabel.replace(/[^A-Za-z\s-]/g, '').trim()})`,
+          label: d.title,
+          cost: d.estimated_cost,
+          recovered: d.projected_revenue_impact,
+          net: net,
+          roi: d.projected_roi
+        };
+      })
+    : [
+        { id: 1, name: "Option A (BEST STRATEGY)", label: "Hotfix + Air Freight", cost: 8400, recovered: 46200, net: 37800, roi: 5.5 },
+        { id: 3, name: "Option C (SUB-OPTIMAL)", label: "Clearance Discount", cost: 15200, recovered: 54000, net: 38800, roi: 3.5 },
+        { id: 2, name: "Option B (WORST STRATEGY)", label: "Physical Hardware Recall", cost: 24500, recovered: 18000, net: -6500, roi: 0.73 },
+      ];
 
-  // Trajectory rebound dataset
-  const trajectoryComparisonData = [
-    { date: "Day 01", withArgus: 1755, withoutArgus: 1755 },
-    { date: "Day 04", withArgus: 1825, withoutArgus: 1825 },
-    { date: "Day 07", withArgus: 1736, withoutArgus: 1736 },
-    { date: "Day 09 (Crisis)", withArgus: 1423, withoutArgus: 1423 },
-    { date: "Day 10 (Crisis)", withArgus: 1353, withoutArgus: 1100 },
-    { date: "Day 11 (Audit)", withArgus: 770, withoutArgus: 820 },
-    { date: "Day 12 (Fix v2.4.1)", withArgus: 1650, withoutArgus: 590 },
-    { date: "Day 14 (Air Freight)", withArgus: 1980, withoutArgus: 480 },
-    { date: "Day 16 (Stabilized)", withArgus: 2150, withoutArgus: 420 },
-    { date: "Day 18 (Restored)", withArgus: 2240, withoutArgus: 380 },
-  ];
+  // Dynamic trajectory rebound dataset based on the active or selected decision
+  const activeDecisionForTrajectory = resolvedDecision || decisions[0];
+  const trajectoryComparisonData = useMemo(() => {
+    if (!activeDecisionForTrajectory) {
+      return [
+        { date: "Day 01", withArgus: 1755, withoutArgus: 1755 },
+        { date: "Day 04", withArgus: 1825, withoutArgus: 1825 },
+        { date: "Day 07", withArgus: 1736, withoutArgus: 1736 },
+        { date: "Day 09 (Crisis)", withArgus: 1423, withoutArgus: 1423 },
+        { date: "Day 10 (Crisis)", withArgus: 1353, withoutArgus: 1100 },
+        { date: "Day 11 (Audit)", withArgus: 770, withoutArgus: 820 },
+        { date: "Day 12 (Fix v2.4.1)", withArgus: 1650, withoutArgus: 590 },
+        { date: "Day 14 (Air Freight)", withArgus: 1980, withoutArgus: 480 },
+        { date: "Day 16 (Stabilized)", withArgus: 2150, withoutArgus: 420 },
+        { date: "Day 18 (Restored)", withArgus: 2240, withoutArgus: 380 },
+      ];
+    }
+    const isConservative = activeDecisionForTrajectory.strategy_type === 'Conservative';
+    const isAggressive = activeDecisionForTrajectory.strategy_type === 'Aggressive';
+
+    if (isConservative) {
+      return [
+        { date: "Day 01", withArgus: 1755, withoutArgus: 1755 },
+        { date: "Day 04", withArgus: 1825, withoutArgus: 1825 },
+        { date: "Day 07", withArgus: 1736, withoutArgus: 1736 },
+        { date: "Day 09 (Crisis)", withArgus: 1423, withoutArgus: 1423 },
+        { date: "Day 10 (Crisis)", withArgus: 1353, withoutArgus: 1100 },
+        { date: "Day 11 (Audit)", withArgus: 770, withoutArgus: 820 },
+        { date: "Day 12 (Recall Ordered)", withArgus: 650, withoutArgus: 590 },
+        { date: "Day 14 (Channel Frozen)", withArgus: 610, withoutArgus: 480 },
+        { date: "Day 16 (Sales Halted)", withArgus: 580, withoutArgus: 420 },
+        { date: "Day 18 (Recall Processed)", withArgus: 620, withoutArgus: 380 },
+      ];
+    } else if (isAggressive) {
+      return [
+        { date: "Day 01", withArgus: 1755, withoutArgus: 1755 },
+        { date: "Day 04", withArgus: 1825, withoutArgus: 1825 },
+        { date: "Day 07", withArgus: 1736, withoutArgus: 1736 },
+        { date: "Day 09 (Crisis)", withArgus: 1423, withoutArgus: 1423 },
+        { date: "Day 10 (Crisis)", withArgus: 1353, withoutArgus: 1100 },
+        { date: "Day 11 (Audit)", withArgus: 770, withoutArgus: 820 },
+        { date: "Day 12 (25% Discount)", withArgus: 1480, withoutArgus: 590 },
+        { date: "Day 14 (Volume Surge)", withArgus: 1720, withoutArgus: 480 },
+        { date: "Day 16 (Bulk Ocean)", withArgus: 1840, withoutArgus: 420 },
+        { date: "Day 18 (Restored $1.89k/d)", withArgus: 1890, withoutArgus: 380 },
+      ];
+    } else {
+      return [
+        { date: "Day 01", withArgus: 1755, withoutArgus: 1755 },
+        { date: "Day 04", withArgus: 1825, withoutArgus: 1825 },
+        { date: "Day 07", withArgus: 1736, withoutArgus: 1736 },
+        { date: "Day 09 (Crisis)", withArgus: 1423, withoutArgus: 1423 },
+        { date: "Day 10 (Crisis)", withArgus: 1353, withoutArgus: 1100 },
+        { date: "Day 11 (Audit)", withArgus: 770, withoutArgus: 820 },
+        { date: "Day 12 (Fix v2.4.1)", withArgus: 1650, withoutArgus: 590 },
+        { date: "Day 14 (Air Freight)", withArgus: 1980, withoutArgus: 480 },
+        { date: "Day 16 (Stabilized)", withArgus: 2150, withoutArgus: 420 },
+        { date: "Day 18 (Restored $2.24k/d)", withArgus: 2240, withoutArgus: 380 },
+      ];
+    }
+  }, [activeDecisionForTrajectory]);
 
   // AI Strategic Assessment Matrix: Evaluates BEST, WORST, and SUB-OPTIMAL
   const getStrategyAssessment = (decisionId: number, strategyType: string) => {
@@ -1214,29 +1285,75 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">ARGUS Autonomous Execution in Progress</h3>
-                <p className="text-xs text-slate-400 mt-1">Executing business directives authorized by executive sign-off</p>
+                <p className="text-xs text-slate-400 mt-1">Executing business directives authorized for: <strong className="text-blue-300">{selectedDecision?.title}</strong></p>
               </div>
 
-              {/* 3 Staged Steps */}
+              {/* 3 Staged Steps tailored to selected strategy */}
               <div className="max-w-md mx-auto space-y-2 text-xs font-mono text-left">
-                <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
-                  executingPhase >= 1 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
-                }`}>
-                  <span>1. Deploying OTA Firmware v2.4.1 hotfix</span>
-                  {executingPhase > 1 ? <Check className="w-4 h-4 text-emerald-400" /> : <span className="animate-spin text-blue-400">●</span>}
-                </div>
-                <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
-                  executingPhase >= 2 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
-                }`}>
-                  <span>2. Dispatching $25 retention coupons to 30 claimants</span>
-                  {executingPhase > 2 ? <Check className="w-4 h-4 text-emerald-400" /> : executingPhase === 2 ? <span className="animate-spin text-blue-400">●</span> : null}
-                </div>
-                <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
-                  executingPhase >= 3 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
-                }`}>
-                  <span>3. Authorizing air-freight PO for 200 Nexus Watch units</span>
-                  {executingPhase === 3 ? <span className="animate-spin text-blue-400">●</span> : null}
-                </div>
+                {selectedDecision?.strategy_type === 'Conservative' ? (
+                  <>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 1 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>1. Halting e-commerce sales & freezing distributor stock</span>
+                      {executingPhase > 1 ? <Check className="w-4 h-4 text-emerald-400" /> : <span className="animate-spin text-blue-400">●</span>}
+                    </div>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 2 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>2. Processing 100% customer return refunds ($24,500)</span>
+                      {executingPhase > 2 ? <Check className="w-4 h-4 text-emerald-400" /> : executingPhase === 2 ? <span className="animate-spin text-blue-400">●</span> : null}
+                    </div>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 3 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>3. Initiating warehouse quarantine for 32 physical units</span>
+                      {executingPhase === 3 ? <span className="animate-spin text-blue-400">●</span> : null}
+                    </div>
+                  </>
+                ) : selectedDecision?.strategy_type === 'Aggressive' ? (
+                  <>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 1 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>1. Updating catalog price to $229 (25% clearance discount)</span>
+                      {executingPhase > 1 ? <Check className="w-4 h-4 text-emerald-400" /> : <span className="animate-spin text-blue-400">●</span>}
+                    </div>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 2 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>2. Deploying OTA Firmware v2.4.1 hotfix to fleet</span>
+                      {executingPhase > 2 ? <Check className="w-4 h-4 text-emerald-400" /> : executingPhase === 2 ? <span className="animate-spin text-blue-400">●</span> : null}
+                    </div>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 3 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>3. Issuing bulk ocean freight PO for 400 Nexus Watch units ($15,200)</span>
+                      {executingPhase === 3 ? <span className="animate-spin text-blue-400">●</span> : null}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 1 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>1. Deploying OTA Firmware v2.4.1 hotfix</span>
+                      {executingPhase > 1 ? <Check className="w-4 h-4 text-emerald-400" /> : <span className="animate-spin text-blue-400">●</span>}
+                    </div>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 2 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>2. Dispatching $25 retention coupons to 30 claimants</span>
+                      {executingPhase > 2 ? <Check className="w-4 h-4 text-emerald-400" /> : executingPhase === 2 ? <span className="animate-spin text-blue-400">●</span> : null}
+                    </div>
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      executingPhase >= 3 ? 'bg-blue-950/60 border-blue-700 text-blue-200' : 'bg-slate-950 border-slate-800 text-slate-500'
+                    }`}>
+                      <span>3. Authorizing air-freight PO for 200 Nexus Watch units</span>
+                      {executingPhase === 3 ? <span className="animate-spin text-blue-400">●</span> : null}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -1254,12 +1371,14 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-0.5 rounded-full text-xs font-mono uppercase font-bold">
-                        Incident Fully Resolved
+                        Incident Executed & Resolved
                       </span>
-                      <span className="text-xs text-slate-400">All metrics restored to healthy thresholds</span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        Strategy: <strong className="text-white">{resolvedDecision?.title || 'Selected Strategy'}</strong>
+                      </span>
                     </div>
                     <h2 className="text-xl font-bold text-white mt-1">
-                      Action Approved & Executed Successfully!
+                      Action Approved: {activeNet >= 0 ? `Net +$${activeNet.toLocaleString()} Preserved` : `Net -$${Math.abs(activeNet).toLocaleString()} Committed`}
                     </h2>
                   </div>
                 </div>
@@ -1331,10 +1450,16 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                     </div>
                     <div className="flex items-baseline space-x-2">
                       <span className="text-xs line-through text-rose-400 font-mono">14.8% (Crisis)</span>
-                      <span className="text-2xl font-bold text-emerald-400 font-mono">2.1%</span>
+                      <span className="text-2xl font-bold text-emerald-400 font-mono">
+                        {resolvedDecision?.strategy_type === 'Conservative' ? '0.0%' : resolvedDecision?.strategy_type === 'Aggressive' ? '4.2%' : '2.1%'}
+                      </span>
                     </div>
                     <div className="text-[11px] text-emerald-400 font-medium bg-emerald-950/40 p-2 rounded-lg border border-emerald-900/50">
-                      ▼ 85.8% reduction in returns. BLE buffer leak patched via OTA v2.4.1.
+                      {resolvedDecision?.strategy_type === 'Conservative'
+                        ? '▼ 100% reduction in returns. Sales halted and hardware quarantined.'
+                        : resolvedDecision?.strategy_type === 'Aggressive'
+                        ? '▼ 71.6% reduction in returns. Hotfix applied with clearance price.'
+                        : '▼ 85.8% reduction in returns. BLE buffer leak patched via OTA v2.4.1.'}
                     </div>
                   </div>
 
@@ -1346,10 +1471,16 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                     </div>
                     <div className="flex items-baseline space-x-2">
                       <span className="text-xs line-through text-amber-400 font-mono">-$38.4k Bleed</span>
-                      <span className="text-2xl font-bold text-emerald-400 font-mono">+$46,200</span>
+                      <span className={`text-2xl font-bold font-mono ${activeNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {activeNet >= 0 ? `+$${activeNet.toLocaleString()}` : `-$${Math.abs(activeNet).toLocaleString()}`}
+                      </span>
                     </div>
-                    <div className="text-[11px] text-emerald-400 font-medium bg-emerald-950/40 p-2 rounded-lg border border-emerald-900/50">
-                      ▲ 5.5x ROI achieved on $8,400 execution budget.
+                    <div className={`text-[11px] font-medium p-2 rounded-lg border ${
+                      activeNet >= 0
+                        ? 'text-emerald-400 bg-emerald-950/40 border-emerald-900/50'
+                        : 'text-rose-300 bg-rose-950/40 border-rose-900/50'
+                    }`}>
+                      {resolvedDecision?.projected_roi ?? 5.5}x ROI on ${activeCost.toLocaleString()} budget (Gross: +${activeImpact.toLocaleString()}).
                     </div>
                   </div>
 
@@ -1361,10 +1492,16 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                     </div>
                     <div className="flex items-baseline space-x-2">
                       <span className="text-xs line-through text-rose-400 font-mono">32 units (7d)</span>
-                      <span className="text-2xl font-bold text-indigo-400 font-mono">232 units</span>
+                      <span className="text-2xl font-bold text-indigo-400 font-mono">
+                        {resolvedDecision?.strategy_type === 'Conservative' ? '32 (Frozen)' : resolvedDecision?.strategy_type === 'Aggressive' ? '432 units' : '232 units'}
+                      </span>
                     </div>
                     <div className="text-[11px] text-indigo-300 font-medium bg-indigo-950/40 p-2 rounded-lg border border-indigo-900/50">
-                      ▲ 45-day safety buffer replenished via expedited air freight.
+                      {resolvedDecision?.strategy_type === 'Conservative'
+                        ? '⚠️ Sales frozen. Units preserved for warranty replacements.'
+                        : resolvedDecision?.strategy_type === 'Aggressive'
+                        ? '▲ 60-day liquidation run buffer secured via bulk container logistics.'
+                        : '▲ 45-day safety buffer replenished via expedited air freight.'}
                     </div>
                   </div>
 
@@ -1375,15 +1512,19 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                        Revenue Trajectory: Recovery vs. Unmitigated Crisis
+                        Revenue Trajectory: {resolvedDecision?.title}
                       </h4>
                       <p className="text-[11px] text-slate-400">
-                        Post-hotfix recovery curve restoring nominal $2,240/day baseline
+                        {resolvedDecision?.strategy_type === 'Conservative'
+                          ? 'Product line halted — curve flattens at $620/day with complete recall costs'
+                          : resolvedDecision?.strategy_type === 'Aggressive'
+                          ? 'Discounted liquidation volume surge recovering to $1,890/day baseline'
+                          : 'Post-hotfix recovery curve restoring nominal $2,240/day baseline'}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2 text-xs font-mono">
                       <span className="text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800/80 px-2 py-0.5 rounded">
-                        Restored: $2,240/day
+                        {resolvedDecision?.strategy_type === 'Conservative' ? 'Restored: $620/day' : resolvedDecision?.strategy_type === 'Aggressive' ? 'Restored: $1,890/day' : 'Restored: $2,240/day'}
                       </span>
                       <span className="text-rose-400 font-bold bg-rose-950/60 border border-rose-800/80 px-2 py-0.5 rounded">
                         Avoided Bleed: -$38.4k
@@ -1407,13 +1548,13 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                           contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
                           formatter={(value: any, name: string) => [
                             `$${Number(value).toLocaleString()}`, 
-                            name === 'withArgus' ? 'With Hotfix' : 'Without Intervention'
+                            name === 'withArgus' ? 'With Strategy' : 'Without Intervention'
                           ]}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
                         
                         <ReferenceLine x="Day 09 (Crisis)" stroke="#F59E0B" strokeDasharray="3 3" label={{ value: 'Crisis Outbreak', fill: '#F59E0B', fontSize: 10, position: 'top' }} />
-                        <ReferenceLine x="Day 12 (Fix v2.4.1)" stroke="#10B981" strokeDasharray="3 3" label={{ value: 'Hotfix Deployed', fill: '#10B981', fontSize: 10, position: 'top' }} />
+                        <ReferenceLine x="Day 12 (Fix v2.4.1)" stroke="#10B981" strokeDasharray="3 3" label={{ value: 'Strategy Executed', fill: '#10B981', fontSize: 10, position: 'top' }} />
 
                         <Area 
                           type="monotone" 
@@ -1422,7 +1563,7 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                           strokeWidth={2.5} 
                           fillOpacity={1} 
                           fill="url(#reboundWithArgusClean)" 
-                          name="With Hotfix ($/day)" 
+                          name="With Strategy ($/day)" 
                         />
                         <Area 
                           type="monotone" 
@@ -1438,8 +1579,10 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
                   </div>
 
                   <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs font-mono flex items-center justify-between text-slate-300">
-                    <span><strong>Intervention Result:</strong> Normal operations fully restored by Day 18 at <strong>$2,240/day</strong> run rate.</span>
-                    <span className="text-emerald-400 font-bold text-[11px]">Net Preserved: +$46,200</span>
+                    <span><strong>Intervention Result:</strong> Executed {resolvedDecision?.title} with {resolvedDecision?.projected_roi}x ROI.</span>
+                    <span className={`font-bold text-[11px] ${activeNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      Net Outcome: {activeNet >= 0 ? `+$${activeNet.toLocaleString()}` : `-$${Math.abs(activeNet).toLocaleString()}`} (Gross: +${activeImpact.toLocaleString()})
+                    </span>
                   </div>
                 </div>
               )}
@@ -1447,21 +1590,55 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
               {/* What ARGUS Executed */}
               <div className="bg-slate-950/80 p-5 rounded-xl border border-slate-800 space-y-3">
                 <h3 className="text-xs font-semibold uppercase text-slate-300 tracking-wider">
-                  Automated Execution Log
+                  Automated Execution Log: {resolvedDecision?.title}
                 </h3>
                 <div className="space-y-2 text-xs text-slate-300">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Deployed Over-The-Air hotfix firmware v2.4.1 to 1,240 devices (memory leak resolved).</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Dispatched $25 store credit apology coupons to 30 affected return claimants (retained 65% of accounts).</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Authorized expedited air-freight reorder of 200 Nexus Watch Ultra units to bypass port congestion.</span>
-                  </div>
+                  {resolvedDecision?.strategy_type === 'Conservative' ? (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Halted Aura Sound Pro sales across all e-commerce channels & distributors.</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Issued 100% full cash refunds to 30 affected return claimants ($24,500 budget allocated).</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Quarantined warehouse inventory of 32 units for hardware teardown & vendor review.</span>
+                      </div>
+                    </>
+                  ) : resolvedDecision?.strategy_type === 'Aggressive' ? (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Reduced Aura Sound Pro MSRP by 25% to $229 for immediate inventory clearance.</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Deployed Over-The-Air hotfix firmware v2.4.1 to 1,240 existing devices.</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Dispatched bulk ocean freight replenishment PO for 400 Nexus Watch units ($15,200).</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Deployed Over-The-Air hotfix firmware v2.4.1 to 1,240 devices (memory leak resolved).</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Dispatched $25 store credit apology coupons to 30 affected return claimants (retained 65% of accounts).</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Authorized expedited air-freight reorder of 200 Nexus Watch Ultra units to bypass port congestion.</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

@@ -47,13 +47,30 @@ export function getBusinessMetrics() {
   // Low stock SKUs
   const low_stock_skus = products.filter(p => p.stock_level <= p.min_reorder_point).length;
 
-  // Check if active investigation has been resolved
+  // Check if active investigation has been resolved and which decision was approved
   const activeInvestigation = store.investigations[store.investigations.length - 1];
   const isResolved = activeInvestigation?.status === 'resolved';
 
-  const final_profit = isResolved ? Number((total_profit + 46200.0).toFixed(2)) : Number(total_profit.toFixed(2));
+  const approvedDecision = store.decisions.find(d => d.status === 'approved' && (!activeInvestigation || d.investigation_id === activeInvestigation.id))
+    || store.decisions.find(d => d.status === 'approved');
+
+  const recoveredAmount = approvedDecision ? approvedDecision.projected_revenue_impact : 46200.0;
+  const executionCost = approvedDecision ? approvedDecision.estimated_cost : 8400.0;
+  const roi = approvedDecision ? approvedDecision.projected_roi : 5.5;
+  const netRecovered = approvedDecision ? (recoveredAmount - executionCost) : 37800.0;
+
+  const final_profit = isResolved 
+    ? Number((total_profit + Math.max(-total_profit, netRecovered)).toFixed(2)) 
+    : Number(total_profit.toFixed(2));
   const gross_margin_pct = total_revenue > 0 ? Number(((final_profit / total_revenue) * 100).toFixed(2)) : 0.0;
-  const overall_return_rate = isResolved ? 2.1 : overall_return_rate_pct;
+
+  let postResolvedReturnRate = 2.1;
+  if (approvedDecision?.strategy_type === 'Conservative') {
+    postResolvedReturnRate = 0.0;
+  } else if (approvedDecision?.strategy_type === 'Aggressive') {
+    postResolvedReturnRate = 4.2;
+  }
+  const overall_return_rate = isResolved ? postResolvedReturnRate : overall_return_rate_pct;
 
   // Product metrics
   let active_anomalies = 0;
@@ -134,6 +151,12 @@ export function getBusinessMetrics() {
     count: isResolved && reason.includes('Bluetooth') ? Math.max(1, Math.round(count * 0.15)) : count
   }));
 
+  const inventoryRiskDescription = approvedDecision?.strategy_type === 'Conservative'
+    ? "Quarantined (Sales paused / physical recall initiated)"
+    : approvedDecision?.strategy_type === 'Aggressive'
+    ? "Replenished (432 units / 60-day liquidation run)"
+    : "Healthy (232 units / 45 days)";
+
   const initial_vs_final = {
     initial: {
       return_rate_pct: 14.8,
@@ -144,11 +167,11 @@ export function getBusinessMetrics() {
       affected_skus: 2
     },
     final: {
-      return_rate_pct: 2.1,
-      net_recovered: 46200,
+      return_rate_pct: postResolvedReturnRate,
+      net_recovered: Math.round(recoveredAmount),
       net_profit: final_profit,
       gross_margin_pct: gross_margin_pct,
-      inventory_risk: "Healthy (232 units / 45 days)",
+      inventory_risk: inventoryRiskDescription,
       affected_skus: 0
     }
   };

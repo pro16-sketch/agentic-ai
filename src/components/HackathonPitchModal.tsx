@@ -67,45 +67,39 @@ export const HackathonPitchModal: React.FC<HackathonPitchModalProps> = ({
       )
     },
     {
-      title: "Enter ARGUS: The Autonomous AI Chief Operations Officer",
-      subtitle: "The Closed-Loop Perception ➔ Reasoning ➔ Action ➔ Safety Architecture",
+      title: "Enter ARGUS: Autonomous Operations Agent",
+      subtitle: "Powered by LangGraph Agentic Loop: Plan → Act → Observe → Adapt",
       icon: Cpu,
       badge: "The Solution",
       badgeColor: "bg-blue-950/80 text-blue-300 border-blue-800",
       content: (
         <div className="space-y-4 text-xs leading-relaxed text-slate-300">
           <p className="text-sm text-slate-200">
-            ARGUS is not a passive dashboard. It is an <strong className="text-blue-400 font-bold">autonomous cognitive agent</strong> that operates on a 5-phase closed loop:
+            ARGUS is not a passive dashboard. It is an <strong className="text-blue-400 font-bold">autonomous cognitive agent</strong> built on <strong className="text-indigo-300 font-bold">LangGraph</strong> to execute a continuous, stateful agentic loop:
           </p>
           <div className="space-y-2">
             <div className="flex items-start space-x-3 bg-slate-950/70 border border-slate-800/80 p-2.5 rounded-xl">
               <span className="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-400 font-mono text-xs flex items-center justify-center shrink-0">1</span>
               <div>
-                <strong className="text-white text-xs">Real-Time Telemetry Sensing:</strong> Continual statistical monitoring of return rate z-scores, inventory burn velocity, and gross margin drift.
+                <strong className="text-white text-xs">PLAN (Telemetry & Hypothesis):</strong> Senses statistical anomalies in real time (Z-score +4.8σ) and decomposes the crisis into competing causal hypotheses.
               </div>
             </div>
             <div className="flex items-start space-x-3 bg-slate-950/70 border border-slate-800/80 p-2.5 rounded-xl">
               <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono text-xs flex items-center justify-center shrink-0">2</span>
               <div>
-                <strong className="text-white text-xs">Hypothesis Generation:</strong> Forms concurrent causal hypotheses (e.g. firmware audio bug vs supplier port delay vs shipping damage) with dynamic confidence scoring.
+                <strong className="text-white text-xs">ACT (LangChain Tool Invocations):</strong> Autonomously invokes structured tools: PostgreSQL SQL queries, Python/Pandas analytics, external APIs, and document diagnostics.
               </div>
             </div>
             <div className="flex items-start space-x-3 bg-slate-950/70 border border-slate-800/80 p-2.5 rounded-xl">
               <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-mono text-xs flex items-center justify-center shrink-0">3</span>
               <div>
-                <strong className="text-white text-xs">Multi-Tool Sandbox Execution:</strong> Autonomously queries return log text clusters, executes margin variance calculus, and runs supply chain lead-time simulations.
+                <strong className="text-white text-xs">OBSERVE (Evidence Synthesis):</strong> Analyzes tool execution outputs, validates root cause (92% confidence BLE stack leak), and eliminates false hypotheses.
               </div>
             </div>
             <div className="flex items-start space-x-3 bg-slate-950/70 border border-slate-800/80 p-2.5 rounded-xl">
               <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 font-mono text-xs flex items-center justify-center shrink-0">4</span>
               <div>
-                <strong className="text-white text-xs">Financial Strategy Synthesis:</strong> Models 3 strategic options (Balanced, Conservative Recall, Aggressive Liquidation) with projected cost, revenue recovery, and ROI multipliers.
-              </div>
-            </div>
-            <div className="flex items-start space-x-3 bg-slate-950/70 border border-slate-800/80 p-2.5 rounded-xl">
-              <span className="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 font-mono text-xs flex items-center justify-center shrink-0">5</span>
-              <div>
-                <strong className="text-white text-xs">Human-in-the-Loop Safe Execution:</strong> Executive authorization gate prevents rogue AI decisions. 1-click execution updates firmware, air-freights stock, and logs to immutable audit trail.
+                <strong className="text-white text-xs">ADAPT (Strategy & Human Gate):</strong> Dynamically calculates financial ROI for 3 strategic options (Balanced, Conservative, Aggressive) and requests 1-click executive authorization.
               </div>
             </div>
           </div>
@@ -196,29 +190,70 @@ export const HackathonPitchModal: React.FC<HackathonPitchModalProps> = ({
       )
     },
     {
-      title: "Why ARGUS Wins: Technical & Design Craft",
-      subtitle: "Production-Grade Full-Stack Architecture Built to Scale",
+      title: "ARGUS Architecture & Production Tech Stack",
+      subtitle: "Stateful Agentic Graph Built for Real Enterprise Operations",
       icon: Trophy,
-      badge: "Hackathon Highlights",
+      badge: "Tech Stack & Architecture",
       badgeColor: "bg-emerald-950/80 text-emerald-300 border-emerald-800",
       content: (
-        <div className="space-y-3 text-xs leading-relaxed text-slate-300">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-1">
-              <strong className="text-white text-xs block">✨ Real Gemini 3.8 Flash Integration</strong>
-              <p className="text-[11px] text-slate-400">Server-side cognitive agent analyzing enterprise tables, computing risk parameters, and drafting executive communications.</p>
+        <div className="space-y-3.5 text-xs leading-relaxed text-slate-300">
+          {/* Compact Presentation Badge */}
+          <div className="bg-slate-950/90 border border-blue-600/50 rounded-xl p-3 text-center shadow-lg shadow-blue-500/5">
+            <div className="text-[10px] font-mono text-blue-400 font-bold uppercase tracking-wider mb-1">
+              Compact Presentation Summary
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-1">
-              <strong className="text-white text-xs block">🔊 Executive Audio SITREP</strong>
-              <p className="text-[11px] text-slate-400">Integrated text-to-speech audio player allowing leadership to listen to live spoken operational briefings.</p>
+            <div className="font-mono text-[11px] sm:text-xs text-white font-semibold break-words">
+              React + Tailwind | Python + FastAPI | LangGraph + LangChain | Gemini/OpenAI | SQL + Pandas | APIs + Web Search | Docker
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-1">
-              <strong className="text-white text-xs block">📊 Dynamic What-If Simulation Sandbox</strong>
-              <p className="text-[11px] text-slate-400">Sliders for price changes, return recovery, expedite freight, and batch size with live sensitivity charts.</p>
+          </div>
+
+          {/* LangGraph Agentic Loop Callout */}
+          <div className="bg-indigo-950/30 border border-indigo-700/50 rounded-xl p-3">
+            <div className="flex items-center space-x-2 text-indigo-300 font-bold text-xs mb-1">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <span>Core Agentic Engine: LangGraph State Machine</span>
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-1">
-              <strong className="text-white text-xs block">🛡️ Zero-Risk Human Authorization</strong>
-              <p className="text-[11px] text-slate-400">Strict executive gate preventing hallucinations or unauthorized capital deployment, backed by full immutable audit logs.</p>
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              LangGraph is the foundational framework powering ARGUS's autonomous loop: <strong className="text-white">Plan → Act → Observe → Adapt</strong>. It maintains persistent graph state across multi-step root-cause diagnostics, dynamic hypothesis scoring, and executive approval checkpoints.
+            </p>
+          </div>
+
+          {/* Detailed Stack Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[11px]">
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <strong className="text-white text-xs block">🖥️ Frontend & UI</strong>
+              <p className="text-slate-400 font-mono text-[10px]">React.js • Tailwind CSS • Recharts</p>
+              <p className="text-slate-400">Dense, high-contrast operational console with live DAG reasoning visualization.</p>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <strong className="text-white text-xs block">⚡ Backend & Agentic Engine</strong>
+              <p className="text-slate-400 font-mono text-[10px]">Python • FastAPI • LangGraph • LangChain</p>
+              <p className="text-slate-400">High-performance async server managing agent state graphs and tool orchestration.</p>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <strong className="text-white text-xs block">🧠 AI & Cognitive LLM</strong>
+              <p className="text-slate-400 font-mono text-[10px]">Gemini API / OpenAI API</p>
+              <p className="text-slate-400">Prompt-based reasoning + structured tool calling with schema validation.</p>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <strong className="text-white text-xs block">📊 Data & Analytics Tools</strong>
+              <p className="text-slate-400 font-mono text-[10px]">PostgreSQL / MySQL • Pandas • Python Tools</p>
+              <p className="text-slate-400">In-memory telemetry processing, Z-score anomaly calculations, and margin variance.</p>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <strong className="text-white text-xs block">🛠️ Invokable Agent Tools</strong>
+              <p className="text-slate-400 font-mono text-[10px]">SQL queries • Python analysis • APIs • Web search • File/Docs</p>
+              <p className="text-slate-400">LangChain-bound sandbox tools for autonomous investigation execution.</p>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <strong className="text-white text-xs block">🚀 Deployment & Infrastructure</strong>
+              <p className="text-slate-400 font-mono text-[10px]">Docker • Render / AWS</p>
+              <p className="text-slate-400">Containerized microservices architecture with scalable cloud deployment.</p>
             </div>
           </div>
         </div>

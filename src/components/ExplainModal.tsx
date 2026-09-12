@@ -61,53 +61,101 @@ export const ExplainModal: React.FC<ExplainModalProps> = ({
             <strong>ARGUS</strong> is an autonomous AI agent that continuously monitors sales telemetry. When something goes wrong, it automatically diagnoses the root cause, tests hypotheses against real logs, calculates ROI for multiple solutions, and presents a 1-click executive decision.
           </div>
 
-          {/* 4 Step Process Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* Step 1 */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
-              <div className="flex items-center space-x-2 text-rose-400 font-semibold text-sm">
-                <span className="w-6 h-6 rounded-md bg-rose-950/80 border border-rose-800 flex items-center justify-center text-xs font-mono text-rose-300">1</span>
-                <span>Detect Anomaly</span>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                ARGUS flags that <em>Aura Sound Pro Headphones</em> return rate jumped from 2.1% to 14.8% after firmware v2.4, risking $38,400/month in profit.
-              </p>
+          {/* 4 Step Process Cards: LangGraph Agentic Loop */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                LangGraph Agentic Loop: Plan → Act → Observe → Adapt
+              </span>
+              <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950/60 border border-indigo-800/80 px-2 py-0.5 rounded">
+                Stateful Agent Graph
+              </span>
             </div>
 
-            {/* Step 2 */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
-              <div className="flex items-center space-x-2 text-indigo-400 font-semibold text-sm">
-                <span className="w-6 h-6 rounded-md bg-indigo-950/80 border border-indigo-800 flex items-center justify-center text-xs font-mono text-indigo-300">2</span>
-                <span>Autonomous Investigation</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Step 1 */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div className="flex items-center space-x-2 text-rose-400 font-semibold text-sm">
+                  <span className="w-6 h-6 rounded-md bg-rose-950/80 border border-rose-800 flex items-center justify-center text-xs font-mono text-rose-300">1</span>
+                  <span>Plan: Detect Anomaly</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  ARGUS flags that <em>Aura Sound Pro Headphones</em> return rate jumped from 2.1% to 14.8% after firmware v2.4, risking $38,400/month in profit. Formulates initial hypotheses in graph state.
+                </p>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                The agent forms hypotheses and queries return logs. It confirms 83% of returns cite a Bluetooth disconnect bug introduced in v2.4, plus a supplier delay.
-              </p>
+
+              {/* Step 2 */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div className="flex items-center space-x-2 text-indigo-400 font-semibold text-sm">
+                  <span className="w-6 h-6 rounded-md bg-indigo-950/80 border border-indigo-800 flex items-center justify-center text-xs font-mono text-indigo-300">2</span>
+                  <span>Act: Tool Execution</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  The agent calls LangChain tools (PostgreSQL SQL queries, Python/Pandas telemetry analytics, API lookups) to test hypotheses and verify return text clusters.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div className="flex items-center space-x-2 text-amber-400 font-semibold text-sm">
+                  <span className="w-6 h-6 rounded-md bg-amber-950/80 border border-amber-800 flex items-center justify-center text-xs font-mono text-amber-300">3</span>
+                  <span>Observe: Root Cause Synthesis</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Confirms BLE buffer memory leak (92% confidence). ARGUS models 3 solutions (Balanced Hotfix, Full Recall, Price Drop) with calculated costs and ROI multipliers.
+                </p>
+              </div>
+
+              {/* Step 4 */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div className="flex items-center space-x-2 text-emerald-400 font-semibold text-sm">
+                  <span className="w-6 h-6 rounded-md bg-emerald-950/80 border border-emerald-800 flex items-center justify-center text-xs font-mono text-emerald-300">4</span>
+                  <span>Adapt: Human Approval & Execution</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  You review and approve the recommended hotfix with 1 click. The agent executes the plan, restocks parts via expedited logistics, and resolves the anomaly!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Production Tech Stack Architecture Card */}
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <span className="text-xs font-bold text-white flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                <span>Production Tech Stack Architecture</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-400">Enterprise Ready</span>
             </div>
 
-            {/* Step 3 */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
-              <div className="flex items-center space-x-2 text-amber-400 font-semibold text-sm">
-                <span className="w-6 h-6 rounded-md bg-amber-950/80 border border-amber-800 flex items-center justify-center text-xs font-mono text-amber-300">3</span>
-                <span>Strategy Synthesis</span>
+            {/* Compact presentation badge */}
+            <div className="p-2.5 bg-slate-900 border border-blue-900/60 rounded-lg text-center">
+              <div className="text-[10px] font-mono text-blue-400 font-bold uppercase mb-0.5">Compact Presentation Stack</div>
+              <div className="font-mono text-xs text-slate-200 font-semibold break-words">
+                React + Tailwind | Python + FastAPI | LangGraph + LangChain | Gemini/OpenAI | SQL + Pandas | APIs + Web Search | Docker
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                ARGUS models 3 solutions (Balanced Hotfix, Full Recall, Price Drop) with calculated costs, projected revenue recovery, and ROI multipliers.
-              </p>
             </div>
 
-            {/* Step 4 */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2">
-              <div className="flex items-center space-x-2 text-emerald-400 font-semibold text-sm">
-                <span className="w-6 h-6 rounded-md bg-emerald-950/80 border border-emerald-800 flex items-center justify-center text-xs font-mono text-emerald-300">4</span>
-                <span>Human Approval & Execution</span>
+            {/* Quick architecture bullets */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+              <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                <strong className="text-blue-300 block text-[11px] mb-0.5">Frontend & State UI:</strong>
+                React.js • Tailwind CSS • Recharts interactive dashboards
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                You review and approve the recommended hotfix with 1 click. The agent executes the plan, restocks parts, and resolves the anomaly!
-              </p>
+              <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                <strong className="text-indigo-300 block text-[11px] mb-0.5">Backend & Agent Workflow:</strong>
+                Python • FastAPI • LangGraph • LangChain
+              </div>
+              <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                <strong className="text-amber-300 block text-[11px] mb-0.5">Cognitive AI & Tool Invocations:</strong>
+                Gemini/OpenAI • SQL queries • Python/Pandas analysis • APIs • Web search • File/Docs
+              </div>
+              <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                <strong className="text-emerald-300 block text-[11px] mb-0.5">Data & Cloud Deployment:</strong>
+                PostgreSQL/MySQL • Pandas analytics • Docker • Render / AWS
+              </div>
             </div>
-
           </div>
 
           {/* Key Principle */}

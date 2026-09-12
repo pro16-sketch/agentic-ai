@@ -104,6 +104,12 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
   const activeLowStock = isInitial ? 1 : isFinal ? 0 : metrics.low_stock_skus;
   const activeAnomalies = isInitial ? 1 : isFinal ? 0 : metrics.active_anomalies;
 
+  const approvedDecision = investigation?.decisions?.find(d => d.status === 'approved') || investigation?.decisions?.[0];
+  const recoveredAmount = metrics.initial_vs_final?.final.net_recovered ?? (approvedDecision ? approvedDecision.projected_revenue_impact : 46200);
+  const finalReturnRate = metrics.initial_vs_final?.final.return_rate_pct ?? 2.1;
+  const finalMargin = metrics.initial_vs_final?.final.gross_margin_pct ?? 61.4;
+  const finalInventoryDesc = metrics.initial_vs_final?.final.inventory_risk ?? "Healthy (232 units / 45 days)";
+
   // Milestone definitions for timeline narrative
   const milestones = [
     {
@@ -136,11 +142,11 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
     {
       id: 4,
       date: "Day 18 - Resolution",
-      title: "Hotfix v2.4.1 Deployed & Air-Freight Arrived",
+      title: approvedDecision ? `${approvedDecision.title} Executed` : "Hotfix v2.4.1 Deployed & Air-Freight Arrived",
       status: "Recovered",
-      desc: "Returns plunged back to 2.1%. Saved $46,200 in net revenue with zero stockout.",
+      desc: `Returns adjusted to ${finalReturnRate}%. Recovered $${recoveredAmount.toLocaleString()} in revenue.`,
       revenue: "$64,200",
-      returnRate: "2.1%"
+      returnRate: `${finalReturnRate}%`
     }
   ];
 
@@ -222,7 +228,7 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
               <span>Executive Differential: Initial Crisis vs. Final Restored State</span>
             </h3>
             <span className="text-xs text-indigo-300 font-mono font-bold bg-indigo-950 px-2.5 py-1 rounded-md border border-indigo-800">
-              Net Impact: +$46,200 Recovered
+              Net Impact: +${recoveredAmount.toLocaleString()} Recovered
             </span>
           </div>
 
@@ -231,36 +237,44 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
               <div className="text-xs text-slate-400">Overall Return Rate</div>
               <div className="flex items-baseline space-x-2 mt-1">
                 <span className="text-xs line-through text-rose-400 font-mono">14.8%</span>
-                <span className="text-xl font-bold text-emerald-400 font-mono">2.1%</span>
+                <span className="text-xl font-bold text-emerald-400 font-mono">{finalReturnRate}%</span>
               </div>
-              <div className="text-[11px] text-emerald-400 mt-1 font-semibold">▼ 85.8% drop (BLE bug fixed)</div>
+              <div className="text-[11px] text-emerald-400 mt-1 font-semibold">
+                {finalReturnRate <= 2.1 ? '▼ 85.8% drop (BLE bug fixed)' : `▼ ${(14.8 - finalReturnRate).toFixed(1)}% reduction`}
+              </div>
             </div>
 
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-              <div className="text-xs text-slate-400">Monthly Return Loss</div>
+              <div className="text-xs text-slate-400">Monthly Return Loss / Recovery</div>
               <div className="flex items-baseline space-x-2 mt-1">
                 <span className="text-xs line-through text-amber-400 font-mono">-$38,400</span>
-                <span className="text-xl font-bold text-emerald-400 font-mono">+$46,200</span>
+                <span className="text-xl font-bold text-emerald-400 font-mono">+${recoveredAmount.toLocaleString()}</span>
               </div>
-              <div className="text-[11px] text-emerald-400 mt-1 font-semibold">▲ 5.5x ROI on $8.4k budget</div>
+              <div className="text-[11px] text-emerald-400 mt-1 font-semibold">
+                {approvedDecision?.projected_roi ?? 5.5}x ROI on ${approvedDecision?.estimated_cost?.toLocaleString() ?? '8,400'} budget
+              </div>
             </div>
 
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
               <div className="text-xs text-slate-400">Nexus Watch Stock</div>
               <div className="flex items-baseline space-x-2 mt-1">
                 <span className="text-xs line-through text-rose-400 font-mono">32 units (7d)</span>
-                <span className="text-xl font-bold text-indigo-400 font-mono">232 units</span>
+                <span className="text-xl font-bold text-indigo-400 font-mono">
+                  {approvedDecision?.strategy_type === 'Conservative' ? '32 units' : approvedDecision?.strategy_type === 'Aggressive' ? '432 units' : '232 units'}
+                </span>
               </div>
-              <div className="text-[11px] text-indigo-300 mt-1 font-semibold">▲ 45 days of supply secured</div>
+              <div className="text-[11px] text-indigo-300 mt-1 font-semibold">{finalInventoryDesc}</div>
             </div>
 
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
               <div className="text-xs text-slate-400">Profit Margin</div>
               <div className="flex items-baseline space-x-2 mt-1">
                 <span className="text-xs line-through text-slate-400 font-mono">42.1%</span>
-                <span className="text-xl font-bold text-emerald-400 font-mono">61.4%</span>
+                <span className="text-xl font-bold text-emerald-400 font-mono">{finalMargin}%</span>
               </div>
-              <div className="text-[11px] text-emerald-400 mt-1 font-semibold">▲ 19.3% margin expansion</div>
+              <div className="text-[11px] text-emerald-400 mt-1 font-semibold">
+                ▲ {(finalMargin - 42.1).toFixed(1)}% margin expansion
+              </div>
             </div>
           </div>
         </div>

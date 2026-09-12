@@ -63,6 +63,16 @@ export async function askArgus(question: string): Promise<AskArgusResult> {
   if (ai) {
     try {
       const prompt = `You are ARGUS, an elite Autonomous Chief AI Operations Officer and Business Intelligence Agent for enterprise retail/e-commerce.
+Architecture & Stack:
+- Frontend: React.js, Tailwind CSS, Recharts
+- Backend / Agent: Python, FastAPI, LangGraph for stateful agent workflows, LangChain for tool integration
+- Agentic Loop (LangGraph): Plan → Act → Observe → Adapt with Human-in-the-Loop authorization
+- AI / LLM: Gemini API / OpenAI API with prompt-based reasoning + structured tool calling
+- Data & Analysis: PostgreSQL / MySQL, Pandas, Python analytics tools
+- Tools ARGUS Invokes: SQL queries, Python analysis, external APIs, Web search, File/document processing
+- Deployment: Docker, Render / AWS
+- Compact Presentation: React + Tailwind | Python + FastAPI | LangGraph + LangChain | Gemini/OpenAI | SQL + Pandas | APIs + Web Search | Docker
+
 Analyze the following real-time company telemetry and answer the executive's query with analytical rigor, exact numbers, and direct strategic recommendations.
 
 Current Enterprise Context:
@@ -117,6 +127,21 @@ Format your response strictly as JSON with the following structure:
 
   // Fallback intelligent heuristic engine based on real store state
   const qLower = question.toLowerCase();
+
+  if (qLower.includes('stack') || qLower.includes('architecture') || qLower.includes('langgraph') || qLower.includes('fastapi') || qLower.includes('tools')) {
+    return {
+      answer: "### ARGUS Technical Architecture & Production Stack\n\n**Compact Summary:**\n`React + Tailwind | Python + FastAPI | LangGraph + LangChain | Gemini/OpenAI | SQL + Pandas | APIs + Web Search | Docker`\n\n- **Frontend:** React.js, Tailwind CSS, Recharts for high-density reactive operational dashboards.\n- **Backend / Agent Engine:** Python, FastAPI, LangGraph for stateful agent workflows, LangChain for tool bindings.\n- **Agentic Loop (LangGraph):** **Plan → Act → Observe → Adapt** with human-in-the-loop governance.\n- **AI / LLM:** Gemini API / OpenAI API with prompt-based reasoning + structured tool calling.\n- **Data & Analysis:** PostgreSQL / MySQL, Pandas, and Python telemetry analytics tools.\n- **Tools ARGUS Invokes:** SQL queries, Python analysis, external APIs, Web search, and file/document processing.\n- **Deployment:** Docker containerization on Render / AWS.",
+      key_metrics: [
+        { label: "Agentic Loop", value: "Plan-Act-Observe-Adapt", trend: "up" },
+        { label: "Backend Core", value: "Python + FastAPI", trend: "neutral" },
+        { label: "Workflow Graph", value: "LangGraph + LangChain", trend: "up" }
+      ],
+      recommended_action: "Review the full DAG visualization or inspect the Architecture Pitch slide for detailed state transitions.",
+      confidence: 0.99,
+      model_used: 'argus-cognitive-engine'
+    };
+  }
+
   if (qLower.includes('margin') || qLower.includes('profit') || qLower.includes('loss')) {
     return {
       answer: "Gross margin fell from the healthy baseline of **61.5% down to 44.2%** (a 17.3% margin compression). The primary culprit is the 7x surge in Aura Sound Pro customer returns following firmware update v2.4, generating **$38,400/month** in direct return handling losses and restocking write-downs.",

@@ -175,6 +175,13 @@ async function startServer() {
       return res.status(404).json({ detail: `Decision ID ${decision_id} not found.` });
     }
 
+    // Mark this decision approved and ensure others for the same investigation are reset
+    if (decision.investigation_id) {
+      store.decisions
+        .filter(d => d.investigation_id === decision.investigation_id && d.id !== decision.id && d.status === 'approved')
+        .forEach(d => { d.status = 'pending'; });
+    }
+
     decision.status = "approved";
     decision.approved_at = new Date().toISOString();
 
@@ -187,14 +194,26 @@ async function startServer() {
     }
 
     const p1 = store.products.find(p => p.id === 1);
-    if (p1) {
-      p1.status = "active";
-    }
-
     const p2 = store.products.find(p => p.id === 2);
-    if (p2) {
-      p2.stock_level += 200;
-      p2.status = "active";
+
+    if (decision.strategy_type === 'Conservative') {
+      if (p1) p1.status = "quarantined";
+    } else if (decision.strategy_type === 'Aggressive') {
+      if (p1) {
+        p1.price = 229.00;
+        p1.status = "active";
+      }
+      if (p2) {
+        p2.stock_level += 400;
+        p2.status = "active";
+      }
+    } else {
+      // Balanced / Default
+      if (p1) p1.status = "active";
+      if (p2) {
+        p2.stock_level += 200;
+        p2.status = "active";
+      }
     }
 
     let existingOutcome = store.outcomes.find(o => o.decision_id === decision.id);
@@ -205,7 +224,7 @@ async function startServer() {
         actual_roi: Number((decision.projected_roi * 1.05).toFixed(2)),
         revenue_recovered: decision.projected_revenue_impact,
         status: "executed_successfully",
-        summary: `Action '${decision.title}' approved and executed. Resolved return rate anomaly and replenished stock.`,
+        summary: `Action '${decision.title}' approved and executed. Recovered $${decision.projected_revenue_impact.toLocaleString()} revenue on $${decision.estimated_cost.toLocaleString()} budget with ${decision.projected_roi}x ROI.`,
         recorded_at: new Date().toISOString()
       };
       store.outcomes.push(outcome);
@@ -215,7 +234,7 @@ async function startServer() {
       id: store.nextIds.auditLog++,
       action_type: "ACTION_APPROVED",
       performed_by: "Executive Decision Maker",
-      details: `Approved strategy '${decision.title}' (ID #${decision.id}). Allocated $${decision.estimated_cost.toLocaleString('en-US', { minimumFractionDigits: 2 })} budget.`,
+      details: `Approved strategy '${decision.title}' (ID #${decision.id}). Allocated $${decision.estimated_cost.toLocaleString('en-US', { minimumFractionDigits: 2 })} budget with projected recovery of $${decision.projected_revenue_impact.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`,
       timestamp: new Date().toISOString()
     };
     store.auditLogs.push(audit);
@@ -224,7 +243,12 @@ async function startServer() {
       message: `Action ID #${decision.id} successfully approved and executed.`,
       decision_id: decision.id,
       status: "approved",
-      projected_revenue_recovered: decision.projected_revenue_impact
+      projected_revenue_recovered: decision.projected_revenue_impact,
+      estimated_cost: decision.estimated_cost,
+      projected_roi: decision.projected_roi,
+      net_recovered: decision.projected_revenue_impact - decision.estimated_cost,
+      strategy_type: decision.strategy_type,
+      title: decision.title
     });
   };
   app.post('/approve-action', handleApproveAction);
