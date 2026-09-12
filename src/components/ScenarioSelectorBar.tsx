@@ -108,7 +108,9 @@ export const ScenarioSelectorBar: React.FC<ScenarioSelectorBarProps> = ({
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span>{sc.shortTitle}</span>
-                <span className={`text-[9px] px-1.5 py-0.2 rounded border ${sc.badgeColor}`}>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded border ${
+                  isCurrent ? 'bg-white/20 text-white border-white/30' : sc.badgeColor
+                }`}>
                   {sc.badge}
                 </span>
               </button>

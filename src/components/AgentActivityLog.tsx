@@ -44,15 +44,15 @@ export const AgentActivityLog: React.FC<AgentActivityLogProps> = ({ events }) =>
           return (
             <div 
               key={event.id}
-              className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
+              className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
             >
               <div className="flex items-start space-x-3">
                 <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${
                   isApproval
-                    ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : isRejected
-                    ? 'bg-rose-950 text-rose-400 border border-rose-800'
-                    : 'bg-blue-950 text-blue-400 border border-blue-800'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                 }`}>
                   {isApproval ? (
                     <CheckCircle2 className="w-4 h-4" />
@@ -69,12 +69,14 @@ export const AgentActivityLog: React.FC<AgentActivityLogProps> = ({ events }) =>
                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${
                       isApproval 
                         ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' 
-                        : 'bg-slate-800 text-slate-400'
+                        : isRejected
+                        ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                        : 'bg-slate-800 text-slate-300'
                     }`}>
                       {event.type}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-3xl">
                     {event.details}
                   </p>
                 </div>

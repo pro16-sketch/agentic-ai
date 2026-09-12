@@ -94,23 +94,23 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end p-0 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-end p-0 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
       <div 
-        className="w-full sm:max-w-xl h-full sm:h-[92vh] bg-slate-900 border-l sm:border border-slate-700/80 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-xl h-full sm:h-[92vh] bg-slate-900 border-l sm:border border-slate-800 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-md shadow-blue-500/20 flex items-center justify-center">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-blue-400">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-lg shadow-blue-500/20 flex items-center justify-center">
+              <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-blue-400">
                 <BrainCircuit className="w-5 h-5" />
               </div>
             </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h3 className="font-bold text-white text-base font-mono">ARGUS AI Copilot</h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full">
+                <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-950 text-blue-300 border border-blue-800 rounded-full font-semibold">
                   Gemini 3.8 Flash
                 </span>
               </div>
@@ -119,7 +119,7 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -135,7 +135,7 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-semibold ${
                 msg.sender === 'user'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-indigo-950 border border-indigo-700 text-indigo-300'
+                  : 'bg-indigo-950 border border-indigo-800 text-indigo-300'
               }`}>
                 {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
               </div>
@@ -143,7 +143,7 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
               <div className={`max-w-[85%] rounded-2xl p-4 text-xs leading-relaxed space-y-3 ${
                 msg.sender === 'user'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 border border-slate-800 text-slate-200 shadow-md'
+                  : 'bg-slate-800/90 border border-slate-700/80 text-slate-200 shadow-md'
               }`}>
                 <div className="whitespace-pre-line leading-relaxed font-sans">
                   {msg.text}
@@ -151,13 +151,13 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
 
                 {/* Agent Key Metrics & Action Pills */}
                 {msg.result && (
-                  <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                  <div className="space-y-3 pt-2 border-t border-slate-700/60">
                     {/* Key metrics grid */}
                     {msg.result.key_metrics && msg.result.key_metrics.length > 0 && (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {msg.result.key_metrics.map((km, kIdx) => (
-                          <div key={kIdx} className="bg-slate-950/80 border border-slate-800 rounded-lg p-2">
-                            <div className="text-[10px] text-slate-400">{km.label}</div>
+                          <div key={kIdx} className="bg-slate-900/80 border border-slate-700/60 rounded-lg p-2">
+                            <div className="text-[10px] text-slate-400 font-medium">{km.label}</div>
                             <div className="text-xs font-bold text-white flex items-center space-x-1 mt-0.5">
                               <span>{km.value}</span>
                               {km.trend === 'up' && <TrendingUp className="w-3 h-3 text-emerald-400" />}
@@ -170,7 +170,7 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
 
                     {/* Recommended Action */}
                     {msg.result.recommended_action && (
-                      <div className="bg-blue-950/40 border border-blue-800/50 rounded-xl p-2.5 flex items-start space-x-2 text-blue-200">
+                      <div className="bg-blue-950/60 border border-blue-800/80 rounded-xl p-2.5 flex items-start space-x-2 text-blue-200">
                         <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                         <div>
                           <span className="font-semibold text-white block text-[11px]">Recommended Directive:</span>
@@ -180,14 +180,14 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
                     )}
 
                     {/* Model badge */}
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
                       <span>Reasoning engine: {msg.result.model_used}</span>
                       <span>Confidence: {(msg.result.confidence * 100).toFixed(0)}%</span>
                     </div>
                   </div>
                 )}
 
-                <div className={`text-[10px] ${msg.sender === 'user' ? 'text-blue-200 text-right' : 'text-slate-500'}`}>
+                <div className={`text-[10px] ${msg.sender === 'user' ? 'text-blue-100 text-right' : 'text-slate-400'}`}>
                   {msg.timestamp}
                 </div>
               </div>
@@ -196,10 +196,10 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
 
           {isLoading && (
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-700 text-indigo-300 flex items-center justify-center shrink-0 text-xs">
+              <div className="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-800 text-indigo-300 flex items-center justify-center shrink-0 text-xs">
                 <Bot className="w-4 h-4" />
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-400 flex items-center space-x-2 shadow-md">
+              <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 text-xs text-slate-300 flex items-center space-x-2 shadow-md">
                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse delay-75" />
                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse delay-150" />
@@ -210,7 +210,7 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
         </div>
 
         {/* Quick Question Chips */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/70 space-y-2">
+        <div className="p-3 border-t border-slate-800 bg-slate-950/40 space-y-2">
           <div className="text-[10px] text-slate-400 font-medium flex items-center space-x-1">
             <Sparkles className="w-3 h-3 text-blue-400" />
             <span>Executive Suggested Inquiries:</span>
@@ -221,7 +221,7 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
                 key={pIdx}
                 onClick={() => handleSend(prompt)}
                 disabled={isLoading}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors text-left disabled:opacity-50"
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors text-left disabled:opacity-50 font-medium"
               >
                 {prompt}
               </button>
@@ -230,14 +230,14 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
         </div>
 
         {/* Input Bar */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950 flex items-center space-x-2">
+        <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center space-x-2">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask ARGUS anything about company data, supply chain, or margins..."
-            className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
           <button
             onClick={() => handleSend()}
