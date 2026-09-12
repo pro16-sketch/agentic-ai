@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -32,18 +32,21 @@ import {
   CartesianGrid, 
   BarChart, 
   Bar,
-  Cell 
+  Cell,
+  ReferenceLine
 } from 'recharts';
-import { BusinessMetrics, ScenarioSimulationResult, ProductMetric } from '../types';
+import { BusinessMetrics, ScenarioSimulationResult, ProductMetric, InvestigationDetails } from '../types';
 import { runSimulation } from '../api';
 
 interface OperationsCenterProps {
   metrics: BusinessMetrics;
+  investigation?: InvestigationDetails | null;
   onGoToIncident: () => void;
 }
 
 export const OperationsCenter: React.FC<OperationsCenterProps> = ({
   metrics,
+  investigation,
   onGoToIncident
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -155,6 +158,41 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
     p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Dynamic Trajectory Dataset that respects Perspective Toggle (Live / Initial Crisis / Final Restored / Delta)
+  const activeChartData = useMemo(() => {
+    if (!metrics?.monthly_revenue_trend || metrics.monthly_revenue_trend.length === 0) return [];
+    
+    if (viewPerspective === 'initial') {
+      return metrics.monthly_revenue_trend.map((point, idx, arr) => {
+        if (idx === arr.length - 2) {
+          return { ...point, revenue: 1180, profit: 90, returnRate: 14.8 };
+        }
+        if (idx === arr.length - 1) {
+          return { ...point, revenue: 780, profit: -140, returnRate: 14.8 };
+        }
+        return point;
+      });
+    } else if (viewPerspective === 'final') {
+      const isConservative = approvedDecision?.strategy_type === 'Conservative';
+      const isAggressive = approvedDecision?.strategy_type === 'Aggressive';
+      const finalRev = isConservative ? 1420 : isAggressive ? 2580 : 2360;
+      const finalProfit = isConservative ? 510 : isAggressive ? 910 : 1180;
+      const finalRet = isConservative ? 0.0 : isAggressive ? 4.2 : 2.1;
+
+      return metrics.monthly_revenue_trend.map((point, idx, arr) => {
+        if (idx === arr.length - 2) {
+          return { ...point, revenue: 1750, profit: 720, returnRate: 6.5 };
+        }
+        if (idx === arr.length - 1) {
+          return { ...point, revenue: finalRev, profit: finalProfit, returnRate: finalRet };
+        }
+        return point;
+      });
+    }
+
+    return metrics.monthly_revenue_trend;
+  }, [metrics?.monthly_revenue_trend, viewPerspective, approvedDecision]);
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -381,13 +419,26 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
         <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <span>Operational & Financial Trajectory</span>
-                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
-                  Interactive Timeline
-                </span>
-              </h3>
-              <p className="text-xs text-slate-400">Click any milestone pin below to view operational events at that point</p>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <span>Operational & Financial Trajectory</span>
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
+                    Interactive Timeline
+                  </span>
+                </h3>
+                {metrics.is_resolved ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Strategy Restored (+${activeChartData[activeChartData.length - 1]?.revenue?.toLocaleString()}/day)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Active Crisis Outbreak
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Click any milestone pin below to view operational events and financial impact</p>
             </div>
             <div className="flex items-center space-x-3 text-xs">
               <div className="flex items-center space-x-1.5">
@@ -403,7 +454,7 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={metrics.monthly_revenue_trend}>
+              <AreaChart data={activeChartData}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.35}/>
@@ -419,10 +470,14 @@ export const OperationsCenter: React.FC<OperationsCenterProps> = ({
                 <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={(val) => `$${val}`} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                  formatter={(value: any) => [`$${Number(value).toLocaleString()}`, '']}
+                  formatter={(value: any, name: string) => [`$${Number(value).toLocaleString()}`, name === 'revenue' ? 'Revenue' : 'Net Profit']}
+                  labelFormatter={(label, payload) => {
+                    const ret = payload?.[0]?.payload?.returnRate;
+                    return `${label} ${ret !== undefined ? `(Return Rate: ${ret}%)` : ''}`;
+                  }}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorRev)" name="Revenue" />
-                <Area type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorProfit)" name="Net Profit" />
+                <Area type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" name="revenue" />
+                <Area type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorProfit)" name="profit" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

@@ -239,6 +239,7 @@ export function App() {
         {viewMode === 'operations' && metrics && (
           <OperationsCenter
             metrics={metrics}
+            investigation={investigation}
             onGoToIncident={() => setViewMode('guided')}
           />
         )}

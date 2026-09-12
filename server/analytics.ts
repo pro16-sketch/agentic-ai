@@ -3,6 +3,7 @@ import { getStore } from './store.js';
 export function getBusinessMetrics() {
   const store = getStore();
   const { products, orders, returns } = store;
+  const now = new Date();
 
   if (orders.length === 0) {
     return {
@@ -105,41 +106,111 @@ export function getBusinessMetrics() {
     };
   });
 
-  // Revenue & Profit Trend for chart
-  const dateGroups = new Map<string, number>();
-  orders.forEach(o => {
-    const d = new Date(o.created_at);
-    const label = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-    dateGroups.set(label, (dateGroups.get(label) || 0) + o.total_price);
-  });
+  // 12-Day Operational & Financial Trajectory Trend for chart
+  const baseDates: string[] = [];
+  for (let d = 11; d >= 0; d--) {
+    const targetDate = new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
+    baseDates.push(targetDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }));
+  }
 
-  const allTrendEntries = Array.from(dateGroups.entries()).map(([date, revenue], idx, arr) => {
-    const roundedRev = Number(revenue.toFixed(2));
-    const isLatePoint = idx >= arr.length - 3;
-    let pointRev = roundedRev;
-    let pointProfit = Number((roundedRev * 0.42).toFixed(2));
-    let returnRate = 2.4;
+  // Pre-defined baseline wave data for days 0..7 (healthy ops)
+  const baselineValues = [
+    { rev: 2480, profit: 1040, ret: 2.1 },
+    { rev: 1820, profit: 760,  ret: 2.2 },
+    { rev: 2290, profit: 960,  ret: 1.9 },
+    { rev: 1940, profit: 810,  ret: 2.0 },
+    { rev: 2310, profit: 970,  ret: 2.3 },
+    { rev: 1980, profit: 830,  ret: 2.1 },
+    { rev: 2520, profit: 1060, ret: 2.0 },
+    { rev: 1890, profit: 790,  ret: 2.2 },
+  ];
 
-    if (!isResolved && isLatePoint) {
-      // Anomaly dip
-      pointRev = Number((roundedRev * 0.78).toFixed(2));
-      pointProfit = Number((roundedRev * 0.22).toFixed(2));
-      returnRate = 14.8;
-    } else if (isResolved && isLatePoint) {
-      // Rebound with recovered revenue
-      pointRev = Number((roundedRev * 1.15).toFixed(2));
-      pointProfit = Number((roundedRev * 0.58).toFixed(2));
-      returnRate = 2.1;
+  const monthly_revenue_trend = baseDates.map((date, idx) => {
+    if (idx < 8) {
+      const b = baselineValues[idx];
+      return {
+        date,
+        revenue: b.rev,
+        profit: b.profit,
+        returnRate: b.ret
+      };
     }
 
-    return {
-      date,
-      revenue: pointRev,
-      profit: pointProfit,
-      returnRate
-    };
+    // Days 8, 9, 10, 11 (Crisis to Intervention)
+    if (idx === 8) {
+      // Day 9: Crisis Outbreak (Firmware v2.4 BLE Leak)
+      return {
+        date,
+        revenue: 1420,
+        profit: 390,
+        returnRate: 14.8
+      };
+    }
+
+    if (idx === 9) {
+      // Day 10: Crisis Escalation / Return Surge
+      return {
+        date,
+        revenue: 1310,
+        profit: 190,
+        returnRate: 14.8
+      };
+    }
+
+    if (idx === 10) {
+      // Day 11: ARGUS Triage & Root Cause Isolation
+      if (isResolved) {
+        return {
+          date,
+          revenue: 1750,
+          profit: 720,
+          returnRate: 6.5
+        };
+      } else {
+        return {
+          date,
+          revenue: 1180,
+          profit: 90,
+          returnRate: 14.8
+        };
+      }
+    }
+
+    // Day 11 (Today / Execution Result Day)
+    if (isResolved) {
+      if (approvedDecision?.strategy_type === 'Conservative') {
+        return {
+          date,
+          revenue: 1420,
+          profit: 510,
+          returnRate: 0.0
+        };
+      } else if (approvedDecision?.strategy_type === 'Aggressive') {
+        return {
+          date,
+          revenue: 2580,
+          profit: 910,
+          returnRate: 4.2
+        };
+      } else {
+        // Balanced / Hotfix v2.4.1 + Air Freight (Option A)
+        return {
+          date,
+          revenue: 2360,
+          profit: 1180,
+          returnRate: 2.1
+        };
+      }
+    } else {
+      // Unresolved Crisis Plunge
+      return {
+        date,
+        revenue: 780,
+        profit: -140,
+        returnRate: 14.8
+      };
+    }
   });
-  const monthly_revenue_trend = allTrendEntries.slice(-12);
 
   // Return Reasons Breakdown
   const reasonCounts = new Map<string, number>();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   AlertOctagon, 
   Search, 
@@ -244,6 +244,65 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
 
   const currentSpikePoint = spikeTelemetryData[selectedSpikeDayIndex] || spikeTelemetryData[spikeTelemetryData.length - 1];
 
+  // AI Strategic Assessment Matrix: Evaluates BEST, WORST, and SUB-OPTIMAL
+  const getStrategyAssessment = (decisionId: number, strategyType: string) => {
+    if (strategyType === 'Balanced' || decisionId === 1) {
+      return {
+        rank: 1,
+        ratingLabel: "🏆 BEST STRATEGY",
+        ratingType: 'BEST' as const,
+        badgeStyle: "bg-emerald-950/90 text-emerald-300 border-emerald-500/80 shadow-emerald-500/10",
+        selectedRing: "border-emerald-500 ring-2 ring-emerald-500 bg-emerald-950/20 shadow-emerald-500/10",
+        score: "96 / 100",
+        aiTag: "Optimal Trade-off • AI Rank #1",
+        headline: "Surgical Root-Cause Hotfix + Strategic Air Freight",
+        whyThisRating: "RATED BEST because it directly targets the BLE memory leak with zero hardware scrap. Recovers $46,200 with only $8,400 in budget, generating the highest capital ROI (5.5x) and net gain (++$37,800).",
+        netImpact: "+$37,800 Net Profit Gain",
+        netValue: 37800,
+        risk: "Low Risk (Controlled OTA roll-out)",
+        pros: "Directly solves BLE leak; prevents watch stockout via air freight; protects $299 MSRP pricing.",
+        cons: "Requires firmware engineering rapid regression sign-off.",
+        aiPromptMessage: "🏆 ARGUS AI Endorsement: Excellent choice. Option A is rated BEST (Score: 96/100). It surgically resolves the BLE buffer overflow via OTA patch while air-freighting 200 watches to prevent stockout, recovering $46,200 with minimal $8,400 expenditure."
+      };
+    }
+    if (strategyType === 'Conservative' || decisionId === 2) {
+      return {
+        rank: 3,
+        ratingLabel: "⚠️ WORST STRATEGY",
+        ratingType: 'WORST' as const,
+        badgeStyle: "bg-rose-950/90 text-rose-300 border-rose-500/80 shadow-rose-500/10",
+        selectedRing: "border-rose-500 ring-2 ring-rose-500 bg-rose-950/20 shadow-rose-500/10",
+        score: "18 / 100",
+        aiTag: "Capital Destructive • AI Rank #3",
+        headline: "Severe Financial Loss for a Software Defect",
+        whyThisRating: "RATED WORST because it halts all sales and initiates a physical recall ($24,500) for what is proven to be a 100% software bug. Leaves an estimated -$6,500 net loss, alarms consumers, and fails to restock the Nexus Watch.",
+        netImpact: "-$6,500 Net Financial Loss",
+        netValue: -6500,
+        risk: "High Risk (Negative cash return & brand shock)",
+        pros: "Guarantees zero units with buggy firmware remain in store channels.",
+        cons: "Net financial loss (-$6,500); destroys $24,500 in working capital; triggers consumer panic unnecessarily.",
+        aiPromptMessage: "⚠️ ARGUS AI Critical Warning: You selected Option B, rated WORST (Score: 18/100). Executing a full hardware recall for an OTA-patchable bug burns $24,500 and creates a -$6,500 net financial loss. Are you sure you want to commit this?"
+      };
+    }
+    return {
+      rank: 2,
+      ratingLabel: "📉 SUB-OPTIMAL",
+      ratingType: 'SUB-OPTIMAL' as const,
+      badgeStyle: "bg-amber-950/90 text-amber-300 border-amber-500/80 shadow-amber-500/10",
+      selectedRing: "border-amber-500 ring-2 ring-amber-500 bg-amber-950/20 shadow-amber-500/10",
+      score: "64 / 100",
+      aiTag: "Margin Dilutive • AI Rank #2",
+      headline: "Volume Recovery with Severe Margin Erosion",
+      whyThisRating: "RATED SUB-OPTIMAL because slashing the retail price from $299 to $229 permanently compresses product gross margins by 23.4% and burns $15,200 in bulk cargo for an inventory crisis that didn't warrant price concessions.",
+      netImpact: "+$38,800 Net (Gross Margin Diluted)",
+      netValue: 38800,
+      risk: "Medium Risk (Permanent brand price anchoring)",
+      pros: "Accelerates inventory liquidation; satisfies price-sensitive buyers.",
+      cons: "Erodes brand prestige; sacrifices $70 margin per unit permanently; high rush air freight ($15,200).",
+      aiPromptMessage: "📉 ARGUS AI Advisory: Option C is SUB-OPTIMAL (Score: 64/100). While it recovers unit sales, price slashing to $229 permanently degrades product gross margins by 23.4% and burns $15,200 in rush logistics."
+    };
+  };
+
   // Dynamic strategy comparison dataset built from active investigation decisions
   const strategyComparisonData = decisions.length > 0
     ? decisions.map((d, index) => {
@@ -327,65 +386,6 @@ export const GuidedIncidentFlow: React.FC<GuidedIncidentFlowProps> = ({
       ];
     }
   }, [activeDecisionForTrajectory]);
-
-  // AI Strategic Assessment Matrix: Evaluates BEST, WORST, and SUB-OPTIMAL
-  const getStrategyAssessment = (decisionId: number, strategyType: string) => {
-    if (strategyType === 'Balanced' || decisionId === 1) {
-      return {
-        rank: 1,
-        ratingLabel: "🏆 BEST STRATEGY",
-        ratingType: 'BEST' as const,
-        badgeStyle: "bg-emerald-950/90 text-emerald-300 border-emerald-500/80 shadow-emerald-500/10",
-        selectedRing: "border-emerald-500 ring-2 ring-emerald-500 bg-emerald-950/20 shadow-emerald-500/10",
-        score: "96 / 100",
-        aiTag: "Optimal Trade-off • AI Rank #1",
-        headline: "Surgical Root-Cause Hotfix + Strategic Air Freight",
-        whyThisRating: "RATED BEST because it directly targets the BLE memory leak with zero hardware scrap. Recovers $46,200 with only $8,400 in budget, generating the highest capital ROI (5.5x) and net gain (++$37,800).",
-        netImpact: "+$37,800 Net Profit Gain",
-        netValue: 37800,
-        risk: "Low Risk (Controlled OTA roll-out)",
-        pros: "Directly solves BLE leak; prevents watch stockout via air freight; protects $299 MSRP pricing.",
-        cons: "Requires firmware engineering rapid regression sign-off.",
-        aiPromptMessage: "🏆 ARGUS AI Endorsement: Excellent choice. Option A is rated BEST (Score: 96/100). It surgically resolves the BLE buffer overflow via OTA patch while air-freighting 200 watches to prevent stockout, recovering $46,200 with minimal $8,400 expenditure."
-      };
-    }
-    if (strategyType === 'Conservative' || decisionId === 2) {
-      return {
-        rank: 3,
-        ratingLabel: "⚠️ WORST STRATEGY",
-        ratingType: 'WORST' as const,
-        badgeStyle: "bg-rose-950/90 text-rose-300 border-rose-500/80 shadow-rose-500/10",
-        selectedRing: "border-rose-500 ring-2 ring-rose-500 bg-rose-950/20 shadow-rose-500/10",
-        score: "18 / 100",
-        aiTag: "Capital Destructive • AI Rank #3",
-        headline: "Severe Financial Loss for a Software Defect",
-        whyThisRating: "RATED WORST because it halts all sales and initiates a physical recall ($24,500) for what is proven to be a 100% software bug. Leaves an estimated -$6,500 net loss, alarms consumers, and fails to restock the Nexus Watch.",
-        netImpact: "-$6,500 Net Financial Loss",
-        netValue: -6500,
-        risk: "High Risk (Negative cash return & brand shock)",
-        pros: "Guarantees zero units with buggy firmware remain in store channels.",
-        cons: "Net financial loss (-$6,500); destroys $24,500 in working capital; triggers consumer panic unnecessarily.",
-        aiPromptMessage: "⚠️ ARGUS AI Critical Warning: You selected Option B, rated WORST (Score: 18/100). Executing a full hardware recall for an OTA-patchable bug burns $24,500 and creates a -$6,500 net financial loss. Are you sure you want to commit this?"
-      };
-    }
-    return {
-      rank: 2,
-      ratingLabel: "📉 SUB-OPTIMAL",
-      ratingType: 'SUB-OPTIMAL' as const,
-      badgeStyle: "bg-amber-950/90 text-amber-300 border-amber-500/80 shadow-amber-500/10",
-      selectedRing: "border-amber-500 ring-2 ring-amber-500 bg-amber-950/20 shadow-amber-500/10",
-      score: "64 / 100",
-      aiTag: "Margin Dilutive • AI Rank #2",
-      headline: "Volume Recovery with Severe Margin Erosion",
-      whyThisRating: "RATED SUB-OPTIMAL because slashing the retail price from $299 to $229 permanently compresses product gross margins by 23.4% and burns $15,200 in bulk cargo for an inventory crisis that didn't warrant price concessions.",
-      netImpact: "+$38,800 Net (Gross Margin Diluted)",
-      netValue: 38800,
-      risk: "Medium Risk (Permanent brand price anchoring)",
-      pros: "Accelerates inventory liquidation; satisfies price-sensitive buyers.",
-      cons: "Erodes brand prestige; sacrifices $70 margin per unit permanently; high rush air freight ($15,200).",
-      aiPromptMessage: "📉 ARGUS AI Advisory: Option C is SUB-OPTIMAL (Score: 64/100). While it recovers unit sales, price slashing to $229 permanently degrades product gross margins by 23.4% and burns $15,200 in rush logistics."
-    };
-  };
 
   const sitrepScript = investigation 
     ? `Attention Executive. ARGUS operational telemetry has flagged an active operational incident: ${investigation.metric_name}. Anomaly score is ${investigation.anomaly_score} out of 10. Root cause confirmed: ${investigation.root_cause}. Three strategic options have been synthesized. Strategy Option A recovers $46,200 in gross margin with a 5.5x capital ROI. Awaiting your executive authorization command.`
