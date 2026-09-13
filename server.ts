@@ -5,6 +5,15 @@ import { getStore, resetStore } from './server/store.js';
 import { getBusinessMetrics, runScenarioSimulation } from './server/analytics.js';
 import { runInvestigation, askArgus, generateExecutiveSitrep } from './server/agent.js';
 import { Outcome, AuditLog } from './server/types.js';
+import {
+  getLogisticsSandbox,
+  resetLogisticsSandbox,
+  generateRecoveryAlternatives,
+  executeLogisticsRecoveryAction,
+  verifyLogisticsRecovery,
+  triggerDisruptionReplanDemo
+} from './server/logistics_sandbox.js';
+import { runAutonomousRecovery } from './server/langgraph_recovery_agent.js';
 
 async function startServer() {
   const app = express();
@@ -12,8 +21,9 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Initialize in-memory data store
+  // Initialize in-memory data store & logistics sandbox
   getStore();
+  getLogisticsSandbox();
 
   // Root health endpoint
   app.get('/api/health', (req, res) => {
@@ -343,6 +353,137 @@ async function startServer() {
     res.json(sitrep);
   };
   app.get('/api/agent-sitrep/:id?', handleAgentSitrep);
+
+  // =========================================================================
+  // PS6: AUTONOMOUS RETAIL SUPPLY CHAIN RECOVERY AGENT REST ENDPOINTS
+  // =========================================================================
+
+  // 12. Full Logistics Digital Twin State (Inventory, Shipments, Vendors, Routes, Incidents, Alternatives)
+  app.get('/api/logistics/state', (req, res) => {
+    const sandbox = getLogisticsSandbox();
+    res.json(sandbox);
+  });
+
+  // 13. Inventory Sub-API
+  app.get('/api/logistics/inventory', (req, res) => {
+    const sandbox = getLogisticsSandbox();
+    const sku = req.query.sku as string;
+    const warehouseId = req.query.warehouseId as string;
+    let inv = sandbox.inventory;
+    if (sku) inv = inv.filter(i => i.sku === sku);
+    if (warehouseId) inv = inv.filter(i => i.warehouseId === warehouseId);
+    res.json(inv);
+  });
+
+  // 14. Shipments Sub-API
+  app.get('/api/logistics/shipments', (req, res) => {
+    const sandbox = getLogisticsSandbox();
+    res.json(sandbox.shipments);
+  });
+
+  // 15. Vendors Sub-API
+  app.get('/api/logistics/vendors', (req, res) => {
+    const sandbox = getLogisticsSandbox();
+    res.json(sandbox.vendors);
+  });
+
+  // 16. Routes & Multi-Modal Transport Graph
+  app.get('/api/logistics/routes', (req, res) => {
+    const sandbox = getLogisticsSandbox();
+    res.json(sandbox.routes);
+  });
+
+  // 17. Disruption Detection & Monitoring Scan
+  app.post('/api/logistics/monitor-detect', (req, res) => {
+    const sandbox = getLogisticsSandbox();
+    const incident = sandbox.incidents[0];
+    res.json({
+      timestamp: new Date().toISOString(),
+      monitored_nodes: {
+        warehouses: sandbox.inventory.length,
+        in_transit_shipments: sandbox.shipments.length,
+        active_vendors: sandbox.vendors.length,
+        routes: sandbox.routes.length
+      },
+      active_incidents: sandbox.incidents,
+      disruption_detected: !!incident && incident.status !== 'RESOLVED'
+    });
+  });
+
+  // 18. Multi-Alternative Pareto Optimization
+  app.post('/api/logistics/investigate-optimize', (req, res) => {
+    const incidentId = req.body?.incident_id || "INC-2026-006";
+    const alternatives = generateRecoveryAlternatives(incidentId);
+    res.json({
+      incident_id: incidentId,
+      total_candidates: alternatives.length,
+      alternatives
+    });
+  });
+
+  // 19. Execute State-Changing Logistics Action (Purchase, Transfer, Reroute, Expedite)
+  app.post('/api/logistics/execute-action', (req, res) => {
+    const actionId = req.body?.action_id || "ALT-OPT-1-APEX-AIR";
+    const forceFailure = req.body?.force_failure === true;
+    try {
+      const result = executeLogisticsRecoveryAction(actionId, { forceVendorFailure: forceFailure });
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 20. Closed-Loop Verification & Certificate Generation
+  app.post('/api/logistics/verify-recovery', (req, res) => {
+    const incidentId = req.body?.incident_id || "INC-2026-006";
+    const actionId = req.body?.action_id;
+    try {
+      const report = verifyLogisticsRecovery(incidentId, actionId);
+      res.json(report);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 21. Execute Full Autonomous Recovery LangGraph State Machine
+  app.post('/api/logistics/run-langgraph', async (req, res) => {
+    const incidentId = req.body?.incident_id || "INC-2026-006";
+    const triggerReplan = req.body?.trigger_replan_demo === true;
+    try {
+      const graphResult = await runAutonomousRecovery(incidentId, triggerReplan);
+      const sandbox = getLogisticsSandbox();
+      res.json({
+        graph_execution: "COMPLETED",
+        final_state: graphResult,
+        digital_twin: sandbox
+      });
+    } catch (err: any) {
+      console.error("LangGraph error:", err);
+      res.status(500).json({ error: "Failed to execute LangGraph recovery workflow", details: err.message });
+    }
+  });
+
+  // 22. Interactive Disruption -> Failure -> Replan Demo (For Hackathon Judges!)
+  app.post('/api/logistics/trigger-replan-demo', (req, res) => {
+    try {
+      const demoResult = triggerDisruptionReplanDemo();
+      res.json({
+        message: "PS6 Disruption -> Failure -> Re-plan Demo successfully completed.",
+        demo: demoResult
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to run replan demo", details: err.message });
+    }
+  });
+
+  // 23. Reset Logistics Sandbox
+  app.post('/api/logistics/reset', (req, res) => {
+    const freshState = resetLogisticsSandbox();
+    res.json({
+      message: "Logistics Digital Twin reset and re-seeded successfully.",
+      state: freshState
+    });
+  });
 
   // Vite middleware for development vs static build for production
   if (process.env.NODE_ENV !== "production") {

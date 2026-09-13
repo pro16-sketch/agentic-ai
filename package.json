@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@google/genai": "^2.22.0",
+    "@langchain/core": "^1.2.11",
+    "@langchain/langgraph": "^1.4.15",
     "axios": "^1.6.8",
     "express": "^4.19.2",
     "lucide-react": "^0.378.0",

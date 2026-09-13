@@ -39,16 +39,16 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
   }>>([
     {
       sender: 'agent',
-      text: "Greetings, Executive. I am ARGUS, your Autonomous AI Operations Copilot powered by Gemini 3.8. I have full real-time access to company sales logs, supplier lead times, inventory levels, and financial risk models. How may I assist your decision-making?",
+      text: "Hello! I am your Autonomous Supply Chain AI Copilot powered by Gemini. I monitor warehouse inventory, freight routes, supplier lead times, and carbon footprints in real-time. Ask me anything about stockout risks, route comparisons, or re-planning strategies.",
       timestamp: "Just now"
     }
   ]);
 
   const quickPrompts = [
-    "Why did gross margin drop from 61.5% to 44.2%?",
-    "Which supplier has the highest stockout risk?",
-    "Compare the ROI of Option A vs Option B",
-    "Draft an executive email to the VP of Engineering"
+    "Why is Bengaluru warehouse about to run out of stock?",
+    "Compare Cost (₹) vs Carbon of Blue Dart Air vs DFC Rail",
+    "How does the AI handle sudden airline failures (Re-planning)?",
+    "What is the total revenue at risk (₹) and stockout gap?"
   ];
 
   const handleSend = async (questionText?: string) => {
@@ -111,10 +111,10 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
               <div className="flex items-center space-x-2">
                 <h3 className="font-bold text-white text-base font-mono">ARGUS AI Copilot</h3>
                 <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-950 text-blue-300 border border-blue-800 rounded-full font-semibold">
-                  Gemini 3.8 Flash
+                  Gemini 2.5 Flash
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Autonomous Enterprise BI & Operations Intelligence</p>
+              <p className="text-xs text-slate-400">Autonomous Supply Chain Intelligence &amp; Optimization</p>
             </div>
           </div>
           <button
@@ -236,7 +236,7 @@ export const AskArgusCopilot: React.FC<AskArgusCopilotProps> = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask ARGUS anything about company data, supply chain, or margins..."
+            placeholder="Ask AI Copilot about inventory, lead times, routes, carbon, or re-planning..."
             className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
           <button

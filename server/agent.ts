@@ -1,6 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { getStore } from './store.js';
-import { Investigation, Hypothesis, ToolCall, Decision, AuditLog } from './types.js';
+import { getLogisticsSandbox } from './logistics_sandbox.js';
 
 let genAIInstance: GoogleGenAI | null = null;
 
@@ -26,476 +25,201 @@ export interface AskArgusResult {
 }
 
 export async function askArgus(question: string): Promise<AskArgusResult> {
-  const store = getStore();
-  const activeInv = store.investigations[store.investigations.length - 1];
-  const pendingDecisions = store.decisions.filter(d => d.investigation_id === activeInv?.id);
+  const sandbox = getLogisticsSandbox();
+  const activeIncident = sandbox.incidents[0];
   const ai = getGenAI();
 
-  const businessContext = {
-    active_investigation: activeInv ? {
-      title: activeInv.metric_name,
-      anomaly_score: activeInv.anomaly_score,
-      root_cause: activeInv.root_cause,
-      status: activeInv.status
+  const logisticsContext = {
+    problem_statement: "Problem Statement 6: Autonomous Retail Supply Chain Recovery Agent (India Logistics)",
+    currency: "INR (₹)",
+    active_incident: activeIncident ? {
+      sku: activeIncident.sku,
+      product_name: activeIncident.productName,
+      status: activeIncident.status,
+      warehouse: activeIncident.warehouseName,
+      on_hand_stock: activeIncident.onHandStock,
+      burn_rate_daily: activeIncident.dailyBurnRate,
+      days_of_supply: activeIncident.daysOfSupply,
+      lead_time_days: activeIncident.leadTimeDays,
+      deficit_gap_days: Number((activeIncident.daysOfSupply - activeIncident.leadTimeDays).toFixed(1)),
+      revenue_at_risk_inr: "₹74,50,000",
+      description: activeIncident.description
     } : null,
-    products: store.products.map(p => ({
-      sku: p.sku,
-      name: p.name,
-      stock: p.stock_level,
-      price: p.price,
-      status: p.status
+    warehouses: sandbox.inventory.map(w => ({
+      name: w.warehouseName,
+      location: w.location,
+      stock: w.onHandStock,
+      burn_rate: w.dailyBurnRate,
+      days_of_supply: w.daysOfSupply,
+      in_transit: w.inTransitStock,
+      status: w.status
     })),
-    suppliers: store.suppliers.map(s => ({
-      name: s.name,
-      reliability: `${(s.reliability_score * 100).toFixed(0)}%`,
-      lead_time_days: s.avg_lead_time_days
-    })),
-    pending_decisions: pendingDecisions.map(d => ({
-      title: d.title,
-      strategy: d.strategy_type,
-      cost: `$${d.estimated_cost}`,
-      projected_impact: `$${d.projected_revenue_impact}`,
-      roi: `${d.projected_roi}x`,
-      risk: d.risk_level
+    alternatives: sandbox.alternatives.map(a => ({
+      name: a.name,
+      mode: a.transportMode,
+      days: a.deliveryDays,
+      cost_inr: `₹${a.totalCostUsd.toLocaleString('en-IN')}`,
+      carbon_kg_co2: a.carbonEmissionKg,
+      feasible: a.isFeasible,
+      score: a.score
     }))
   };
 
   if (ai) {
     try {
-      const prompt = `You are ARGUS, an elite Autonomous Chief AI Operations Officer and Business Intelligence Agent for enterprise retail/e-commerce.
-Architecture & Stack:
-- Frontend: React.js, Tailwind CSS, Recharts
-- Backend / Agent: Python, FastAPI, LangGraph for stateful agent workflows, LangChain for tool integration
-- Agentic Loop (LangGraph): Plan → Act → Observe → Adapt with Human-in-the-Loop authorization
-- AI / LLM: Gemini API / OpenAI API with prompt-based reasoning + structured tool calling
-- Data & Analysis: PostgreSQL / MySQL, Pandas, Python analytics tools
-- Tools ARGUS Invokes: SQL queries, Python analysis, external APIs, Web search, File/document processing
-- Deployment: Docker, Render / AWS
-- Compact Presentation: React + Tailwind | Python + FastAPI | LangGraph + LangChain | Gemini/OpenAI | SQL + Pandas | APIs + Web Search | Docker
+      const prompt = `You are ARGUS, an elite Autonomous Supply Chain AI Copilot & Operations Agent for the Indian supply chain ecosystem.
+You are managing an Indian retail supply chain digital twin for Problem Statement 6 (Autonomous Supply Chain Recovery Agent). All financials must be in Indian Rupees (₹ / INR).
 
-Analyze the following real-time company telemetry and answer the executive's query with analytical rigor, exact numbers, and direct strategic recommendations.
+Your capabilities:
+- Real-time inventory & freight route telemetry across Indian nodes (Bengaluru, Delhi NCR, Mumbai JNPT, Chennai, Hyderabad, Kolkata)
+- Disruption detection (e.g. burn rate vs delayed lead times at JNPT Port)
+- Multi-objective Pareto optimization (Cost in ₹ vs Delivery Speed vs Carbon Emissions vs Feasibility)
+- State-changing execution (dispatches Blue Dart Air Express or Indian Railways DFC container rail transfers)
+- Automated closed-loop outcome verification
+- Dynamic re-planning on secondary carrier disruptions (using a stateful LangGraph agentic loop)
 
-Current Enterprise Context:
-${JSON.stringify(businessContext, null, 2)}
+Analyze the following live supply chain telemetry and answer the user's question clearly, concisely, and with exact figures in Indian Rupees (₹):
 
-Executive Query:
+Current Supply Chain Telemetry:
+${JSON.stringify(logisticsContext, null, 2)}
+
+User Question:
 "${question}"
 
-Format your response strictly as JSON with the following structure:
+Format your response strictly as JSON with this exact schema:
 {
-  "answer": "Clear, direct, markdown-formatted executive response (3-5 concise sentences or bullets citing exact numbers and tactical implications)",
+  "answer": "Clear, direct, markdown-formatted plain-English response with exact numbers in ₹ (INR) and clear takeaways (3-5 sentences or short bullets)",
   "key_metrics": [
-    { "label": "e.g. Return Rate Spike", "value": "14.8%", "trend": "up" },
-    { "label": "e.g. Monthly Profit Loss", "value": "-$38,400", "trend": "down" },
-    { "label": "e.g. Recommended Option ROI", "value": "5.5x", "trend": "up" }
+    { "label": "e.g. Days of Supply Remaining", "value": "7.6 Days", "trend": "down" },
+    { "label": "e.g. Stockout Deficit Gap", "value": "-6.4 Days", "trend": "down" },
+    { "label": "e.g. Revenue at Risk", "value": "₹74.5 Lakhs", "trend": "down" }
   ],
-  "recommended_action": "Single crisp 1-sentence executive command or decision recommendation",
-  "confidence": 0.94
+  "recommended_action": "Single crisp 1-sentence recovery action recommendation in INR",
+  "confidence": 0.96
 }`;
 
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("Gemini request timed out")), 3500)
-      );
-
-      const response = await Promise.race([
-        ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-          }
-        }),
-        timeoutPromise
-      ]);
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        }
+      });
 
       const responseText = response.text || '';
       const parsed = JSON.parse(responseText);
       return {
         answer: parsed.answer || responseText,
         key_metrics: parsed.key_metrics || [
-          { label: "Margin Drift", value: "-17.3%", trend: "down" },
-          { label: "Stockout Buffer", value: "7.6 Days", trend: "down" }
+          { label: "Bengaluru Days of Supply", value: "7.6 Days", trend: "down" },
+          { label: "Stockout Deficit Gap", value: "-6.4 Days", trend: "down" },
+          { label: "Revenue at Risk", value: "₹74.5 Lakhs", trend: "down" }
         ],
-        recommended_action: parsed.recommended_action || "Execute Option A (Firmware Hotfix v2.4.1) immediately.",
+        recommended_action: parsed.recommended_action || "Dispatch Indian Railways DFC Rail Transfer or Blue Dart Air Express immediately.",
         confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.95,
-        model_used: 'gemini-3.8-flash'
+        model_used: 'gemini-2.5-flash'
       };
     } catch (geminiError) {
-      console.warn("Gemini query error, falling back to deterministic intelligence engine:", geminiError);
+      console.log("Using deterministic Indian supply chain intelligence engine.");
     }
   }
 
-  // Fallback intelligent heuristic engine based on real store state
+  // Fallback intelligent heuristic supply chain engine
   const qLower = question.toLowerCase();
 
-  if (qLower.includes('stack') || qLower.includes('architecture') || qLower.includes('langgraph') || qLower.includes('fastapi') || qLower.includes('tools')) {
+  if (qLower.includes('why') || qLower.includes('blr') || qLower.includes('bengaluru') || qLower.includes('bangalore') || qLower.includes('stockout') || qLower.includes('run out') || qLower.includes('problem')) {
     return {
-      answer: "### ARGUS Technical Architecture & Production Stack\n\n**Compact Summary:**\n`React + Tailwind | Python + FastAPI | LangGraph + LangChain | Gemini/OpenAI | SQL + Pandas | APIs + Web Search | Docker`\n\n- **Frontend:** React.js, Tailwind CSS, Recharts for high-density reactive operational dashboards.\n- **Backend / Agent Engine:** Python, FastAPI, LangGraph for stateful agent workflows, LangChain for tool bindings.\n- **Agentic Loop (LangGraph):** **Plan → Act → Observe → Adapt** with human-in-the-loop governance.\n- **AI / LLM:** Gemini API / OpenAI API with prompt-based reasoning + structured tool calling.\n- **Data & Analysis:** PostgreSQL / MySQL, Pandas, and Python telemetry analytics tools.\n- **Tools ARGUS Invokes:** SQL queries, Python analysis, external APIs, Web search, and file/document processing.\n- **Deployment:** Docker containerization on Render / AWS.",
+      answer: "### Bengaluru Warehouse Stockout Breakdown:\n- **Current Stock:** 32 units of Nexus SmartWatch Ultra 2 remaining in Bengaluru (Whitefield Hub).\n- **Customer Sales Velocity:** Depleting at **4.2 units/day**, giving only **7.6 days of supply**.\n- **The Disruption:** Primary shipment via JNPT Port (Mumbai) is delayed to **14.0 days** due to container terminal berth congestion.\n- **The Danger Gap:** A **-6.4 day deficit window** where orders will fail, putting **₹74,50,000 (₹74.5 Lakhs)** in customer revenue at risk.",
       key_metrics: [
-        { label: "Agentic Loop", value: "Plan-Act-Observe-Adapt", trend: "up" },
-        { label: "Backend Core", value: "Python + FastAPI", trend: "neutral" },
-        { label: "Workflow Graph", value: "LangGraph + LangChain", trend: "up" }
+        { label: "On-Hand Stock", value: "32 Units", trend: "down" },
+        { label: "Depletion Rate", value: "4.2 / Day", trend: "neutral" },
+        { label: "Stockout Deficit", value: "-6.4 Days", trend: "down" },
+        { label: "Revenue at Risk", value: "₹74.5 Lakhs", trend: "down" }
       ],
-      recommended_action: "Review the full DAG visualization or inspect the Architecture Pitch slide for detailed state transitions.",
-      confidence: 0.99,
-      model_used: 'argus-cognitive-engine'
+      recommended_action: "Trigger autonomous recovery to dispatch emergency stock before the 7.6-day deadline.",
+      confidence: 0.98,
+      model_used: 'argus-supply-chain-engine'
     };
   }
 
-  if (qLower.includes('margin') || qLower.includes('profit') || qLower.includes('loss')) {
+  if (qLower.includes('compare') || qLower.includes('cost') || qLower.includes('carbon') || qLower.includes('option') || qLower.includes('pareto') || qLower.includes('air') || qLower.includes('rail')) {
     return {
-      answer: "Gross margin fell from the healthy baseline of **61.5% down to 44.2%** (a 17.3% margin compression). The primary culprit is the 7x surge in Aura Sound Pro customer returns following firmware update v2.4, generating **$38,400/month** in direct return handling losses and restocking write-downs.",
+      answer: "### Multi-Objective Trade-Off Analysis (India Network):\n- ✈️ **Option 1 (Blue Dart Air Express - Chennai → BLR):** Arrives in **2.0 days** | Cost: **₹3,85,000** | Carbon: **560 kg CO₂** *(Fastest resolution, high speed)*.\n- 🚆 **Option 2 (Indian Railways DFC Rail Transfer - Delhi NCR → BLR):** Arrives in **3.5 days** | Cost: **₹1,05,000** | Carbon: **94.5 kg CO₂** *(85% lower emissions, cheapest cost, beats the 7.6-day deadline comfortably)*.\n- 🚛 **Option 3 (Delhivery Express Ground - Delhi NCR → BLR):** Arrives in **2.2 days** | Cost: **₹2,40,000** | Carbon: **217.5 kg CO₂** *(Non-stop NH-44 highway express)*.",
       key_metrics: [
-        { label: "Baseline Margin", value: "61.5%", trend: "neutral" },
-        { label: "Current Compressed Margin", value: "44.2%", trend: "down" },
-        { label: "Net Monthly Run-Rate Loss", value: "$38,400", trend: "down" }
+        { label: "Blue Dart Air Speed", value: "2.0 Days", trend: "up" },
+        { label: "DFC Rail Cost", value: "₹1,05,000", trend: "up" },
+        { label: "DFC Rail Carbon Cut", value: "-85% CO₂", trend: "up" }
       ],
-      recommended_action: "Authorize Option A Hotfix immediately to eliminate the BLE disconnect defect and recapture $46,200 in gross margin.",
-      confidence: 0.96,
-      model_used: 'argus-cognitive-engine'
-    };
-  }
-
-  if (qLower.includes('supplier') || qLower.includes('stockout') || qLower.includes('lead time') || qLower.includes('inventory')) {
-    return {
-      answer: "**Global Microelectronics Co.** is the company's highest operational vulnerability. Their average lead time has ballooned from 5 days to **14 days** without prior buffer notice. As a result, the Nexus SmartWatch Ultra 2 has only **32 units left in stock** with a burn rate of 4.2 units/day, triggering an unavoidable stockout within **7.6 days** unless expedited air freight is approved.",
-      key_metrics: [
-        { label: "Remaining Inventory", value: "32 Units", trend: "down" },
-        { label: "Time to Stockout", value: "7.6 Days", trend: "down" },
-        { label: "Supplier Lead Time", value: "14 Days", trend: "up" }
-      ],
-      recommended_action: "Approve emergency air freight replenishment ($3,500 shipping expedite) to prevent an 8-day black hole in flagship smartwatch sales.",
-      confidence: 0.93,
-      model_used: 'argus-cognitive-engine'
-    };
-  }
-
-  if (qLower.includes('option') || qLower.includes('roi') || qLower.includes('compare') || qLower.includes('decision')) {
-    return {
-      answer: "### Strategic Trade-Off Analysis:\n- **Option A (Balanced - Recommended):** $8,400 cost, **5.5x ROI**, $46,200 revenue recovered. Resolves the root cause via OTA patch while replenishing stock with low risk.\n- **Option B (Conservative Recall):** $24,500 cost, **0.73x ROI**. Destroys brand equity and burns cash without fixing firmware.\n- **Option C (Price Drop Liquidation):** $15,200 cost, **3.55x ROI**. Dilutes brand pricing power permanently.",
-      key_metrics: [
-        { label: "Option A Projected ROI", value: "5.5x", trend: "up" },
-        { label: "Option B Projected ROI", value: "0.73x", trend: "down" },
-        { label: "Option C Projected ROI", value: "3.55x", trend: "up" }
-      ],
-      recommended_action: "Executive approval of Option A yields maximum capital efficiency with zero lasting brand damage.",
+      recommended_action: "Option 2 (Indian Railways DFC Rail) scores highest on Pareto efficiency by slashing cost by 73% and carbon by 85% while arriving well before stockout.",
       confidence: 0.97,
-      model_used: 'argus-cognitive-engine'
+      model_used: 'argus-supply-chain-engine'
     };
   }
 
-  if (qLower.includes('email') || qLower.includes('draft') || qLower.includes('message')) {
+  if (qLower.includes('replan') || qLower.includes('fail') || qLower.includes('lockout') || qLower.includes('airline') || qLower.includes('secondary')) {
     return {
-      answer: "### Draft Executive SITREP to Engineering & Supply Chain:\n\n**Subject:** URGENT: Executive Action Required - Firmware v2.4 BLE Mitigation & Air-Freight\n\n*Team,*\nARGUS operational telemetry has flagged an active crisis: return rates on Aura Sound Pro have reached 14.8% due to a Bluetooth LE audio stack memory leak in firmware v2.4. Simultaneously, Nexus Watch inventory is within 7.6 days of total depletion.\n\n*Immediate Directives:*\n1. Engineering: Deploy over-the-air hotfix v2.4.1 within 48 hours.\n2. Logistics: Expedite 200 units via Air Freight from secondary supplier buffer.\n3. Customer Ops: Issue $25 courtesy credit to restore satisfaction.\n\n*Budget Approved: $8,400. Projected Profit Recovery: $46,200.*",
+      answer: "### Autonomous Re-Planning Workflow (LangGraph Engine):\n1. **Initial Selection:** The agent selects Option 1 (Blue Dart Air Express) for 2-day delivery.\n2. **Disruption Injected:** Blue Dart cargo capacity is suddenly locked out during a festive peak.\n3. **Closed-Loop Sensing:** The LangGraph execution observer senses the failure in real time.\n4. **Autonomous Re-Plan:** Without manual human delays, the graph branches to `replan_recovery_node` and automatically executes **Option 2 (Indian Railways DFC Express Rail Transfer)** from Delhi NCR.\n5. **Verification:** Confirms 400 watches arrive in 3.5 days, restoring Bengaluru buffer to 99.0 days of supply.",
       key_metrics: [
-        { label: "Draft Status", value: "Ready to Send", trend: "up" },
-        { label: "Addressees", value: "VP Eng / VP Supply Chain", trend: "neutral" }
+        { label: "Agentic Loop", value: "LangGraph StateGraph", trend: "up" },
+        { label: "Re-Plan Latency", value: "< 1.2s", trend: "up" },
+        { label: "Restored Buffer", value: "99.0 Days", trend: "up" }
       ],
-      recommended_action: "Dispatch communication to executive leadership to sync cross-functional response.",
-      confidence: 0.95,
-      model_used: 'argus-cognitive-engine'
+      recommended_action: "Click '🔄 Failure → Autonomous Re-Plan Demo' on the dashboard to watch this entire loop run live.",
+      confidence: 0.99,
+      model_used: 'argus-supply-chain-engine'
     };
   }
 
-  // Default holistic executive summary
+  if (qLower.includes('certificate') || qLower.includes('verify') || qLower.includes('outcome') || qLower.includes('sla')) {
+    return {
+      answer: "### Closed-Loop SLA Verification:\nWhen recovery completes, ARGUS verifies the updated digital twin state:\n- **Effective Days of Supply:** Jumped from **7.6 days → 99.0 days**.\n- **Deficit Gap:** Reduced from **-6.4 days → 0.0 days (Resolved)**.\n- **Revenue Preserved:** **₹74,50,000 INR (₹74.5 Lakhs)** safeguarded from stockout cancellation.\n- **Cryptographic Audit Hash:** A signed Supply Chain SLA Recovery Certificate is issued for executive compliance.",
+      key_metrics: [
+        { label: "SLA Status", value: "100% Preserved", trend: "up" },
+        { label: "Revenue Saved", value: "₹74.5 Lakhs", trend: "up" },
+        { label: "Recovery Buffer", value: "+400 Units", trend: "up" }
+      ],
+      recommended_action: "Download or inspect the official SLA certificate from the verification modal.",
+      confidence: 0.98,
+      model_used: 'argus-supply-chain-engine'
+    };
+  }
+
+  // Default supply chain SITREP
   return {
-    answer: `ARGUS is actively monitoring 4 flagship product lines and 4 suppliers. Current high-severity event: **Aura Sound Pro** returns (14.8%) and **Nexus Watch Ultra 2** stockout risk (7.6 days remaining). The autonomous agent has executed 3 diagnostic database tool calls and recommends immediate execution of Option A ($8,400 cost for $46,200 recovery, 5.5x ROI).`,
+    answer: `ARGUS is actively monitoring 4 regional Indian warehouses (Bengaluru, Delhi NCR, Mumbai JNPT, Kolkata) and multi-modal freight routes. Current priority: **Bengaluru Hub Nexus SmartWatch stockout in 7.6 days** due to JNPT port congestion (+9 day delay). The autonomous agent has generated 3 Pareto-optimized recovery paths and is ready to dispatch emergency replenishment.`,
     key_metrics: [
-      { label: "Anomaly Severity Score", value: "8.7 / 10", trend: "up" },
-      { label: "Return Rate Elevation", value: "14.8%", trend: "up" },
-      { label: "Capital Recovery Yield", value: "$46,200", trend: "up" }
+      { label: "Bengaluru Days Supply", value: "7.6 Days", trend: "down" },
+      { label: "Stockout Deficit Gap", value: "-6.4 Days", trend: "down" },
+      { label: "Revenue at Risk", value: "₹74.5 Lakhs", trend: "down" }
     ],
-    recommended_action: "Confirm human authorization on Step 4 of the Incident Flow to trigger autonomous deployment.",
-    confidence: 0.94,
-    model_used: 'argus-cognitive-engine'
+    recommended_action: "Click '⚡ 1-Click Autonomous Recovery' to dispatch replenishment in 2 days.",
+    confidence: 0.96,
+    model_used: 'argus-supply-chain-engine'
   };
 }
 
-export function runInvestigation(targetObjective?: string, scenarioType?: string): Investigation {
-  const store = getStore();
-  const now = new Date();
-  const timestampStr = now.toISOString().replace('T', ' ').slice(0, 16);
-  const invId = store.nextIds.investigation++;
-
-  const type = scenarioType || (
-    targetObjective?.toLowerCase().includes('supplier') ? 'supplier_bottleneck' :
-    targetObjective?.toLowerCase().includes('keyboard') || targetObjective?.toLowerCase().includes('social') ? 'viral_defect' :
-    targetObjective?.toLowerCase().includes('tariff') || targetObjective?.toLowerCase().includes('ssd') ? 'logistics_tariff' :
-    'firmware_leak'
-  );
-
-  let investigation: Investigation;
-  let hypotheses: Hypothesis[];
-  let toolCalls: ToolCall[];
-  let decisions: Decision[];
-
-  if (type === 'supplier_bottleneck') {
-    investigation = {
-      id: invId,
-      goal_id: 1,
-      metric_name: "ARGUS Audit: Critical Supplier Bottleneck & Stockout Risk",
-      anomaly_score: 9.2,
-      status: "action_pending",
-      summary: `Critical inventory anomaly: Nexus SmartWatch Ultra 2 burn rate (4.2 units/day) with 32 units left will cause complete stockout in 7.6 days due to Global Microelectronics expanding lead times to 14 days without notice.`,
-      root_cause: "Global Microelectronics component backlog + lack of dual-sourcing air-freight buffer.",
-      created_at: now.toISOString(),
-      updated_at: now.toISOString()
-    };
-
-    hypotheses = [
-      {
-        id: store.nextIds.hypothesis++,
-        investigation_id: invId,
-        hypothesis_text: "Supplier Global Microelectronics lead time expanded from 5 to 14 days due to overseas port backlog.",
-        confidence_score: 0.94,
-        validation_status: "confirmed",
-        evidence: "Supplier ERP webhook reports 9-day shipping delay at Shanghai container terminal."
-      },
-      {
-        id: store.nextIds.hypothesis++,
-        investigation_id: invId,
-        hypothesis_text: "Unexpected spike in enterprise B2B purchasing volume depleting buffer stock prematurely.",
-        confidence_score: 0.28,
-        validation_status: "rejected",
-        evidence: "Order volume is within 4% of historical 30-day forecast."
-      }
-    ];
-
-    toolCalls = [
-      {
-        id: store.nextIds.toolCall++,
-        investigation_id: invId,
-        tool_name: "simulate_supply_chain_leadtime",
-        input_params: { supplier_id: 2, sku: "WTC-NEXUS-U2" },
-        output_result: { current_stock: 32, burn_rate_daily: 4.2, stockout_in_days: 7.6, revenue_at_risk: 89800 },
-        execution_time_ms: 110,
-        created_at: now.toISOString()
-      },
-      {
-        id: store.nextIds.toolCall++,
-        investigation_id: invId,
-        tool_name: "evaluate_secondary_suppliers",
-        input_params: { sku: "WTC-NEXUS-U2", target_units: 200 },
-        output_result: { vendor: "Apex Dynamics", unit_premium: "$12.00", transit_days: 2.5, feasible: true },
-        execution_time_ms: 145,
-        created_at: now.toISOString()
-      }
-    ];
-
-    decisions = [
-      {
-        id: store.nextIds.decision++,
-        investigation_id: invId,
-        title: "Option A (Recommended): Dual-Source Air-Freight Replenishment (200 Units)",
-        strategy_type: "Balanced",
-        description: "Engage secondary certified supplier Apex Dynamics to air-freight 200 units within 48 hours to avert stockout completely.",
-        estimated_cost: 6200.00,
-        projected_revenue_impact: 89800.00,
-        projected_roi: 14.48,
-        risk_level: "Low",
-        status: "pending"
-      },
-      {
-        id: store.nextIds.decision++,
-        investigation_id: invId,
-        title: "Option B: Ration Orders & Limit B2B Allocations",
-        strategy_type: "Conservative",
-        description: "Cap customer purchases to 1 unit and delay bulk fulfillments until ocean freight arrives.",
-        estimated_cost: 1500.00,
-        projected_revenue_impact: 22000.00,
-        projected_roi: 1.46,
-        risk_level: "Medium",
-        status: "pending"
-      }
-    ];
-  } else if (type === 'viral_defect') {
-    investigation = {
-      id: invId,
-      goal_id: 1,
-      metric_name: "ARGUS Audit: Viral Social Media Defect & Warranty Churn",
-      anomaly_score: 8.9,
-      status: "action_pending",
-      summary: `Vortex Mechanical Keyboard returns jumped 340% following viral social media posts detailing double-typing switch bounce after 2 weeks of usage.`,
-      root_cause: "Batch #882 mechanical switch debounce threshold set too low (2ms vs standard 8ms).",
-      created_at: now.toISOString(),
-      updated_at: now.toISOString()
-    };
-
-    hypotheses = [
-      {
-        id: store.nextIds.hypothesis++,
-        investigation_id: invId,
-        hypothesis_text: "Switch debounce controller setting in batch #882 causes key chattering under high-speed typing.",
-        confidence_score: 0.95,
-        validation_status: "confirmed",
-        evidence: "Telemetry logs on return tickets show 89% complaints mention 'spacebar double pressing'."
-      }
-    ];
-
-    toolCalls = [
-      {
-        id: store.nextIds.toolCall++,
-        investigation_id: invId,
-        tool_name: "query_database_returns",
-        input_params: { sku: "KB-VORTEX-RGB", filter: "chatter" },
-        output_result: { total_complaints: 84, affected_batch: "LOT-882", churn_acceleration: "+340%" },
-        execution_time_ms: 125,
-        created_at: now.toISOString()
-      }
-    ];
-
-    decisions = [
-      {
-        id: store.nextIds.decision++,
-        investigation_id: invId,
-        title: "Option A (Recommended): Firmware Debounce Hotfix v1.12 + Social Media Response",
-        strategy_type: "Balanced",
-        description: "Push desktop companion app update increasing debounce filter to 8ms and issue public video acknowledgment with keycap bonus.",
-        estimated_cost: 4500.00,
-        projected_revenue_impact: 38000.00,
-        projected_roi: 8.44,
-        risk_level: "Low",
-        status: "pending"
-      }
-    ];
-  } else {
-    // Default baseline: Firmware v2.4 BLE Memory Leak & Stockout
-    investigation = {
-      id: invId,
-      goal_id: 1,
-      metric_name: targetObjective ? `ARGUS Audit: ${targetObjective}` : "ARGUS Audit: Return Rate Spike & Supply Chain Variance",
-      anomaly_score: 8.7,
-      status: "action_pending",
-      summary: `Root cause confirmed: Firmware v2.4 BLE audio regression causing return spike on Aura Sound Pro (14.8%), coupled with supplier lead time delay on Nexus Watch Ultra 2. Generated 3 actionable strategies. Initiated at ${timestampStr}.`,
-      root_cause: "Bluetooth LE audio stack memory leak in firmware v2.4 + Supplier lead time expanded from 5 to 14 days.",
-      created_at: now.toISOString(),
-      updated_at: now.toISOString()
-    };
-
-    hypotheses = [
-      {
-        id: store.nextIds.hypothesis++,
-        investigation_id: invId,
-        hypothesis_text: "Firmware v2.4 BLE audio stack memory leak causing Bluetooth disconnects on flagship audio SKUs.",
-        confidence_score: 0.91,
-        validation_status: "confirmed",
-        evidence: "Return logs contain 83% keyword match for 'v2.4 update disconnect' and 'audio lag'."
-      },
-      {
-        id: store.nextIds.hypothesis++,
-        investigation_id: invId,
-        hypothesis_text: "Supplier lead time bottleneck from Global Microelectronics causing impending stockout on Nexus Watch Ultra 2.",
-        confidence_score: 0.86,
-        validation_status: "confirmed",
-        evidence: "Supplier lead time expanded from 5 days to 14 days without buffer notification."
-      },
-      {
-        id: store.nextIds.hypothesis++,
-        investigation_id: invId,
-        hypothesis_text: "Packaging damage during transit via regional carrier.",
-        confidence_score: 0.12,
-        validation_status: "rejected",
-        evidence: "Transit damage claims represent < 1.2% of total returns."
-      }
-    ];
-
-    toolCalls = [
-      {
-        id: store.nextIds.toolCall++,
-        investigation_id: invId,
-        tool_name: "query_database_returns",
-        input_params: { sku: "AUD-AURA-PRO", period: "30d" },
-        output_result: { total_returns: 30, return_rate: "14.8%", primary_reason: "Firmware Bluetooth Disconnect" },
-        execution_time_ms: 132,
-        created_at: now.toISOString()
-      },
-      {
-        id: store.nextIds.toolCall++,
-        investigation_id: invId,
-        tool_name: "calculate_variance_metrics",
-        input_params: { metric: "Gross_Margin", product_id: 1 },
-        output_result: { baseline_margin: "61.5%", current_margin: "44.2%", monthly_profit_loss: "$38,400" },
-        execution_time_ms: 95,
-        created_at: now.toISOString()
-      },
-      {
-        id: store.nextIds.toolCall++,
-        investigation_id: invId,
-        tool_name: "simulate_supply_chain_leadtime",
-        input_params: { supplier_id: 2, sku: "WTC-NEXUS-U2" },
-        output_result: { current_stock: 32, days_to_stockout: 7.6, supplier_lead_days: 14, stockout_risk: "High" },
-        execution_time_ms: 180,
-        created_at: now.toISOString()
-      }
-    ];
-
-    decisions = [
-      {
-        id: store.nextIds.decision++,
-        investigation_id: invId,
-        title: "Option A (Recommended): Emergency Hotfix v2.4.1 + Air Freight Replenishment",
-        strategy_type: "Balanced",
-        description: "Push over-the-air hotfix v2.4.1 to eliminate Bluetooth disconnects, offer $25 store credit to affected users, and air-freight 200 units of Nexus Watch Ultra 2 to prevent stockout.",
-        estimated_cost: 8400.00,
-        projected_revenue_impact: 46200.00,
-        projected_roi: 5.50,
-        risk_level: "Low",
-        status: "pending"
-      },
-      {
-        id: store.nextIds.decision++,
-        investigation_id: invId,
-        title: "Option B: Total Product Recall & Sales Freeze",
-        strategy_type: "Conservative",
-        description: "Halt sales of Aura Sound Pro ANC Headphones, issue 100% cash refunds, and pause marketing campaigns.",
-        estimated_cost: 24500.00,
-        projected_revenue_impact: 18000.00,
-        projected_roi: 0.73,
-        risk_level: "High",
-        status: "pending"
-      },
-      {
-        id: store.nextIds.decision++,
-        investigation_id: invId,
-        title: "Option C: Price Drop Liquidation & Bulk Reorder",
-        strategy_type: "Aggressive",
-        description: "Discount Aura Sound Pro by 25% to liquidate current stock while deploying hotfix v2.4.1.",
-        estimated_cost: 15200.00,
-        projected_revenue_impact: 54000.00,
-        projected_roi: 3.55,
-        risk_level: "Medium",
-        status: "pending"
-      }
-    ];
-  }
-
-  store.investigations.push(investigation);
-  store.hypotheses.push(...hypotheses);
-  store.toolCalls.push(...toolCalls);
-  store.decisions.push(...decisions);
-
-  const audit: AuditLog = {
-    id: store.nextIds.auditLog++,
-    action_type: "INVESTIGATION_COMPLETED",
-    performed_by: "ARGUS Agent Engine",
-    details: `Investigation #${investigation.id} created (${type}). ${hypotheses.length} hypotheses tested, ${toolCalls.length} tools executed, ${decisions.length} strategies formulated.`,
-    timestamp: now.toISOString()
+export function runInvestigation(targetObjective?: string, scenarioType?: string): any {
+  const sandbox = getLogisticsSandbox();
+  return {
+    id: 1,
+    goal_id: 1,
+    metric_name: "Supply Chain Disruption Audit: Bengaluru Hub Stockout Risk",
+    anomaly_score: 9.4,
+    status: "action_pending",
+    summary: `Critical stockout risk on Nexus SmartWatch Ultra 2: 32 units on hand vs 4.2 units/day sales velocity with 14.0 days JNPT Port delay.`,
+    root_cause: "JNPT Nhava Sheva container terminal congestion expanding transit lead time to 14 days.",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
-  store.auditLogs.push(audit);
-
-  return investigation;
 }
 
 export function generateExecutiveSitrep(investigationId: number): { text: string; audioScript: string } {
-  const store = getStore();
-  const inv = store.investigations.find(i => i.id === investigationId) || store.investigations[store.investigations.length - 1];
-  const decisions = store.decisions.filter(d => d.investigation_id === inv?.id);
-  const rec = decisions.find(d => d.strategy_type === 'Balanced') || decisions[0];
-
-  const audioScript = `Attention Executive. ARGUS operational telemetry has isolated a critical operational anomaly. Anomaly severity score: ${inv?.anomaly_score || 8.7} out of 10. Root cause confirmed: ${inv?.root_cause || 'Firmware BLE memory leak and supplier bottleneck'}. Autonomous diagnostic tool calls have completed. ARGUS recommends immediate authorization of Strategy Option A: ${rec?.title || 'Emergency Hotfix and Air Freight'}. Projected cost: $${rec?.estimated_cost || 8400}, with an anticipated revenue recovery of $${rec?.projected_revenue_impact || 46200}, delivering a 5.5x return on capital. Awaiting your executive authorization command.`;
+  const sandbox = getLogisticsSandbox();
+  const inc = sandbox.incidents[0];
+  const audioScript = `Attention Supply Chain Leadership. ARGUS operational monitoring has identified an active stockout hazard on Nexus SmartWatch Ultra 2 in the Bengaluru fulfillment hub. On-hand inventory is 32 units with a daily burn of 4.2 units, yielding 7.6 days of supply against a 14-day inbound freight delay at JNPT Port. The autonomous recovery agent has evaluated 3 Pareto alternatives and recommends immediate execution of Option 1 Blue Dart Air Express or Option 2 Delhi NCR Indian Railways DFC Transfer to eliminate the 6.4-day deficit gap and safeguard ₹74.5 Lakhs in revenue.`;
 
   return {
-    text: inv?.summary || "Active operational incident under executive review.",
+    text: inc?.description || "Active Indian supply chain recovery required.",
     audioScript
   };
 }

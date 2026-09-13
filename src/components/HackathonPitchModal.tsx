@@ -258,6 +258,65 @@ export const HackathonPitchModal: React.FC<HackathonPitchModalProps> = ({
           </div>
         </div>
       )
+    },
+    {
+      title: "Problem Statement 6: Autonomous Supply Chain Recovery",
+      subtitle: "100% Comprehensive Rubric Compliance & Hackathon Verification",
+      icon: ShieldCheck,
+      badge: "PS6 Rubric & Verification",
+      badgeColor: "bg-purple-950/80 text-purple-300 border-purple-800",
+      content: (
+        <div className="space-y-3.5 text-xs leading-relaxed text-slate-300">
+          <div className="bg-purple-950/40 border border-purple-800/50 p-3 rounded-xl">
+            <strong className="text-purple-200 block text-xs mb-1">Problem Statement 6 Mission:</strong>
+            <p className="text-[11px] text-slate-300">
+              Build an autonomous supply-chain recovery agent that maintains service objectives when inventory, shipment, vendor, or demand conditions change.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="p-2.5 bg-slate-950/60 border border-slate-800 rounded-xl flex items-start space-x-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white text-xs">1. Real-time Telemetry &amp; Monitoring:</strong>
+                <p className="text-[11px] text-slate-400">Continuous telemetry across 4 regional warehouse hubs, live in-transit freight routes, and certified vendors.</p>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-950/60 border border-slate-800 rounded-xl flex items-start space-x-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white text-xs">2. Disruption &amp; Constraint Detection:</strong>
+                <p className="text-[11px] text-slate-400">Mathematical violation detection: burn rate (4.2/d) × lead time (14.0d) exceeds on-hand stock (32 units), triggering a critical -6.4 day deficit alarm.</p>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-950/60 border border-slate-800 rounded-xl flex items-start space-x-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white text-xs">3. Multi-Objective Pareto Optimization:</strong>
+                <p className="text-[11px] text-slate-400">Simultaneously balances Total Cost, Delivery Lead Time, and Carbon Footprint (kg CO2) with configurable SLA constraints.</p>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-950/60 border border-slate-800 rounded-xl flex items-start space-x-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white text-xs">4. State-Changing Execution &amp; Verification:</strong>
+                <p className="text-[11px] text-slate-400">Mutates digital twin state via simulated purchase orders/transfers and verifies restored SLA with cryptographic certificates.</p>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-950/60 border border-slate-800 rounded-xl flex items-start space-x-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white text-xs">5. Live Failure &amp; Autonomous Re-planning Loop:</strong>
+                <p className="text-[11px] text-slate-400">When Option 1 (Air freight) experiences a sudden vendor lockout, the LangGraph engine branches to the re-plan node and dispatches Option 2 (Eco-Rail transfer) seamlessly.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
     }
   ];
 

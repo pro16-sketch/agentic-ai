@@ -1,6 +1,6 @@
 {
-  "name": "ARGUS — Enterprise Business Operations Platform",
-  "description": "Autonomous AI Business Intelligence & Operations Agent Platform with financial metrics, investigation console, and decision center.",
+  "name": "ARGUS — Autonomous Retail Supply Chain Recovery Agent",
+  "description": "Autonomous supply-chain recovery agent with logistics digital twin, disruption detection, multi-objective Pareto optimization (cost/delivery/carbon), automated action execution, closed-loop verification, and dynamic re-planning.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
